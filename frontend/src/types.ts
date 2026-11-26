@@ -1,0 +1,351 @@
+export interface ApiResponse<T> {
+  code: number
+  message: string
+  data: T
+  timestamp: string
+}
+
+export interface PageResult<T> {
+  items: T[]
+  total: number
+  page: number
+  size: number
+}
+
+export interface MenuItem {
+  module: string
+  method: string
+  name: string
+  path: string
+  icon?: string | null
+  sort: number
+}
+
+export interface UserProfile {
+  id: number
+  account: string
+  realname?: string | null
+  nickname?: string | null
+  phone?: string | null
+  email?: string | null
+  avatar?: string | null
+  groups: string[]
+}
+
+export interface MeResponse {
+  user: UserProfile
+  rights: Record<string, string[]>
+  menus: MenuItem[]
+  dataScope: string
+  limited: boolean
+  privVersion: number
+}
+
+export interface TokenResponse {
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
+  me: MeResponse
+}
+
+export interface Group {
+  id: number
+  code: string
+  name: string
+  role?: string | null
+  dataScope: string
+  limited: boolean
+  scopeType: string
+  scopeId: number
+  status: string
+  sort: number
+  userCount: number
+}
+
+export interface Priv {
+  id: number
+  module: string
+  method: string
+  name: string
+  type: 'VIEW' | 'ACTION' | string
+  parentId?: number | null
+  menuPath?: string | null
+  icon?: string | null
+  sort: number
+  status: string
+}
+
+export interface User {
+  id: number
+  account: string
+  realname?: string | null
+  nickname?: string | null
+  phone?: string | null
+  email?: string | null
+  avatar?: string | null
+  status: string
+  privVersion: number
+  lastLoginAt?: string | null
+  groups: Group[]
+}
+
+export interface UserPermissionView {
+  userId: number
+  account: string
+  rights: Record<string, string[]>
+  menus: MenuItem[]
+  dataScope: string
+  limited: boolean
+  privVersion: number
+}
+
+export interface AuditLog {
+  id: number
+  userId?: number | null
+  action: string
+  targetType: string
+  targetId?: string | null
+  beforeJson?: string | null
+  afterJson?: string | null
+  ip?: string | null
+  createdAt: string
+}
+
+export interface RouteCheck {
+  route: string
+  database: string
+  userCount?: number
+}
+
+export interface Teacher {
+  id: number
+  name: string
+  title?: string | null
+  avatar?: string | null
+  subject?: string | null
+  introduction?: string | null
+  sort: number
+  status: string
+  ownerUserId?: number | null
+}
+
+export interface Course {
+  id: number
+  title: string
+  subtitle?: string | null
+  subject: string
+  stage: string
+  coverUrl?: string | null
+  description?: string | null
+  price: number
+  originalPrice?: number | null
+  rating: number
+  studentCount: number
+  status: string
+  ownerUserId?: number | null
+  createdAt?: string | null
+  teachers: Teacher[]
+}
+
+export interface Lesson {
+  id: number
+  chapterId: number
+  title: string
+  videoUrl?: string | null
+  durationSec: number
+  isTrial: boolean
+  sort: number
+  status: string
+}
+
+export interface Chapter {
+  id: number
+  courseId: number
+  title: string
+  sort: number
+  lessons: Lesson[]
+}
+
+export interface CourseDetail {
+  course: Course
+  chapters: Chapter[]
+}
+
+export interface ArticleCategory {
+  id: number
+  name: string
+  sort: number
+}
+
+export interface Article {
+  id: number
+  categoryId?: number | null
+  categoryName?: string | null
+  title: string
+  summary?: string | null
+  coverUrl?: string | null
+  contentHtml?: string | null
+  author?: string | null
+  status: string
+  publishedAt?: string | null
+  viewCount: number
+  ownerUserId?: number | null
+  createdAt?: string | null
+}
+
+export interface Material {
+  id: number
+  title: string
+  subject?: string | null
+  fileUrl: string
+  fileSize: number
+  downloadCount: number
+  status: string
+  ownerUserId?: number | null
+}
+
+export interface Banner {
+  id: number
+  title: string
+  imageUrl: string
+  linkUrl?: string | null
+  sort: number
+  status: string
+  startAt?: string | null
+  endAt?: string | null
+}
+
+export interface HomeData {
+  banners: Banner[]
+  hotCourses: Course[]
+  teachers: Teacher[]
+  latestArticles: Article[]
+}
+
+export interface Coupon {
+  id: number
+  name: string
+  type: 'FIXED' | 'PERCENT' | string
+  value: number
+  minAmount: number
+  totalQuantity: number
+  remainingQuantity: number
+  perUserLimit: number
+  startAt: string
+  endAt: string
+  subject?: string | null
+  description?: string | null
+  status: string
+}
+
+export interface UserCoupon {
+  id: number
+  couponId: number
+  name: string
+  type: 'FIXED' | 'PERCENT' | string
+  value: number
+  minAmount: number
+  subject?: string | null
+  description?: string | null
+  status: string
+  receivedAt: string
+  usedAt?: string | null
+  startAt: string
+  endAt: string
+  orderId?: number | null
+}
+
+export interface OrderItem {
+  id?: number | null
+  courseId: number
+  courseTitle: string
+  coverUrl?: string | null
+  subject?: string | null
+  price: number
+}
+
+export interface Order {
+  id: number
+  orderNo: string
+  userId: number
+  userAccount?: string | null
+  nickname?: string | null
+  status: string
+  totalAmount: number
+  discountAmount: number
+  payAmount: number
+  userCouponId?: number | null
+  couponName?: string | null
+  orderSource: string
+  payMethod?: string | null
+  paidAt?: string | null
+  expireAt?: string | null
+  canceledAt?: string | null
+  completedAt?: string | null
+  createdAt?: string | null
+  items: OrderItem[]
+  refundStatus?: string | null
+  refundReason?: string | null
+}
+
+export interface OrderPreview {
+  items: OrderItem[]
+  totalAmount: number
+  discountAmount: number
+  payAmount: number
+  userCouponId?: number | null
+  couponName?: string | null
+  couponDescription?: string | null
+}
+
+export interface PaymentChannel {
+  code: string
+  name: string
+}
+
+export interface PaymentResult {
+  order: Order
+  channel: string
+  transactionNo?: string | null
+  paidAt?: string | null
+  message: string
+}
+
+export interface Refund {
+  id: number
+  orderId: number
+  orderNo: string
+  userId: number
+  userAccount?: string | null
+  nickname?: string | null
+  reason: string
+  amount: number
+  status: string
+  adminNote?: string | null
+  handledBy?: number | null
+  handledAt?: string | null
+  createdAt?: string | null
+  orderStatus?: string | null
+}
+
+export interface MyCourse {
+  id: number
+  courseId: number
+  courseTitle: string
+  coverUrl?: string | null
+  subject: string
+  stage: string
+  price: number
+  enrolledAt: string
+  progressPercent: number
+  status: string
+  orderId?: number | null
+}
+
+export interface PurchaseStatus {
+  courseId: number
+  enrolled: boolean
+  pendingOrderNo?: string | null
+  paidOrderNo?: string | null
+}

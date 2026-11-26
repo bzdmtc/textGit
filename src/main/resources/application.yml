@@ -1,0 +1,87 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smart_learning
+  config:
+    import: optional:file:./application-local.yml
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 120MB
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3s
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.block.ms: 3000
+        delivery.timeout.ms: 5000
+        request.timeout.ms: 4000
+    consumer:
+      group-id: smart-learning
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      auto-startup: false
+app:
+  datasource:
+    master:
+      url: jdbc:sqlserver://localhost:1433;databaseName=smart_learning;encrypt=true;trustServerCertificate=true
+      username: ${DB_MASTER_USERNAME:smart_learning_app}
+      password: ${DB_MASTER_PASSWORD:}
+      maximum-pool-size: 10
+      minimum-idle: 2
+    read:
+      url: jdbc:sqlserver://localhost:1433;databaseName=smart_learning_read;encrypt=true;trustServerCertificate=true
+      username: ${DB_READ_USERNAME:smart_learning_read}
+      password: ${DB_READ_PASSWORD:}
+      maximum-pool-size: 10
+      minimum-idle: 2
+  jwt:
+    secret: ${JWT_SECRET:}
+    access-ttl: PT2H
+    refresh-ttl: P7D
+  auth:
+    dev-mode: true
+    code-ttl: PT5M
+    send-interval: PT60S
+    daily-limit: 10
+    max-attempts: 5
+  mail:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  health:
+    mail:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.example.smart_learning: INFO

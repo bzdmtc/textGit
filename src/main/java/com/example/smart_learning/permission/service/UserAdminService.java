@@ -1,0 +1,184 @@
+package com.example.smart_learning.permission.service;
+
+import com.example.smart_learning.common.api.PageResult;
+import com.example.smart_learning.common.datasource.Master;
+import com.example.smart_learning.common.error.BusinessException;
+import com.example.smart_learning.common.error.ErrorCode;
+import com.example.smart_learning.permission.dto.GroupDto;
+import com.example.smart_learning.permission.dto.UserCreateRequest;
+import com.example.smart_learning.permission.dto.UserDto;
+import com.example.smart_learning.permission.dto.UserPermissionView;
+import com.example.smart_learning.permission.dto.UserUpdateRequest;
+import com.example.smart_learning.permission.entity.SysGroup;
+import com.example.smart_learning.permission.entity.SysUserGroup;
+import com.example.smart_learning.permission.repository.SysGroupRepository;
+import com.example.smart_learning.permission.repository.SysUserGroupRepository;
+import com.example.smart_learning.user.entity.SysUser;
+import com.example.smart_learning.user.repository.SysUserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@Master
+public class UserAdminService {
+
+    private final SysUserRepository userRepository;
+    private final SysGroupRepository groupRepository;
+    private final SysUserGroupRepository userGroupRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final PermissionService permissionService;
+    private final AuditService auditService;
+
+    public UserAdminService(SysUserRepository userRepository,
+                            SysGroupRepository groupRepository,
+                            SysUserGroupRepository userGroupRepository,
+                            PasswordEncoder passwordEncoder,
+                            PermissionService permissionService,
+                            AuditService auditService) {
+        this.userRepository = userRepository;
+        this.groupRepository = groupRepository;
+        this.userGroupRepository = userGroupRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.permissionService = permissionService;
+        this.auditService = auditService;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<UserDto> page(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 1) - 1, Math.min(Math.max(size, 1), 100));
+        Page<SysUser> result = userRepository.search(keyword, pageable);
+        List<UserDto> items = result.getContent().stream().map(this::toDto).toList();
+        return PageResult.of(items, result.getTotalElements(), page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public UserDto get(Long id) {
+        return toDto(requireUser(id));
+    }
+
+    @Transactional
+    public UserDto create(UserCreateRequest request) {
+        String account = request.account().trim();
+        if (userRepository.existsByAccount(account)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "账号已存在");
+        }
+        if (request.phone() != null && userRepository.existsByPhone(request.phone())) {
+            throw new BusinessException(ErrorCode.PHONE_EXISTS);
+        }
+        if (request.email() != null && userRepository.existsByEmail(request.email())) {
+            throw new BusinessException(ErrorCode.EMAIL_EXISTS);
+        }
+        SysUser user = new SysUser();
+        user.setAccount(account);
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setRealname(request.realname());
+        user.setNickname(request.nickname());
+        user.setPhone(blankToNull(request.phone()));
+        user.setEmail(blankToNull(request.email()));
+        user.setStatus("ACTIVE");
+        user.setPrivVersion(0L);
+        user = userRepository.save(user);
+        if (request.groupIds() != null && !request.groupIds().isEmpty()) {
+            replaceGroups(user.getId(), request.groupIds());
+        }
+        auditService.record("USER_CREATE", "USER", user.getId(), null,
+                java.util.Map.of("account", account, "groupIds", request.groupIds()));
+        return toDto(user);
+    }
+
+    @Transactional
+    public UserDto update(Long id, UserUpdateRequest request) {
+        SysUser user = requireUser(id);
+        UserDto before = toDto(user);
+        if (request.phone() != null && !request.phone().equals(user.getPhone())
+                && userRepository.existsByPhone(request.phone())) {
+            throw new BusinessException(ErrorCode.PHONE_EXISTS);
+        }
+        if (request.email() != null && !request.email().equalsIgnoreCase(user.getEmail())
+                && userRepository.existsByEmail(request.email())) {
+            throw new BusinessException(ErrorCode.EMAIL_EXISTS);
+        }
+        user.setRealname(request.realname());
+        user.setNickname(request.nickname());
+        user.setPhone(blankToNull(request.phone()));
+        user.setEmail(blankToNull(request.email()));
+        user.setAvatar(request.avatar());
+        user = userRepository.save(user);
+        auditService.record("USER_UPDATE", "USER", id, before, toDto(user));
+        return toDto(user);
+    }
+
+    @Transactional
+    public UserDto setStatus(Long id, String status) {
+        SysUser user = requireUser(id);
+        UserDto before = toDto(user);
+        user.setStatus(status);
+        user = userRepository.save(user);
+        userRepository.bumpPrivVersion(id);
+        permissionService.evict(id);
+        auditService.record("USER_STATUS", "USER", id, before, toDto(user));
+        return toDto(user);
+    }
+
+    @Transactional
+    public UserDto assignGroups(Long id, List<Long> groupIds) {
+        SysUser user = requireUser(id);
+        UserDto before = toDto(user);
+        replaceGroups(id, groupIds);
+        userRepository.bumpPrivVersion(id);
+        permissionService.evict(id);
+        UserDto after = toDto(user);
+        auditService.record("USER_ASSIGN_GROUP", "USER", id,
+                java.util.Map.of("groups", before.groups().stream().map(GroupDto::code).toList()),
+                java.util.Map.of("groups", after.groups().stream().map(GroupDto::code).toList()));
+        return after;
+    }
+
+    @Transactional(readOnly = true)
+    public UserPermissionView permissions(Long id) {
+        SysUser user = requireUser(id);
+        var snapshot = permissionService.getSnapshot(user);
+        return new UserPermissionView(user.getId(), user.getAccount(), snapshot.rights(),
+                snapshot.menus(), snapshot.dataScope(), snapshot.limited(), snapshot.privVersion());
+    }
+
+    private void replaceGroups(Long userId, List<Long> groupIds) {
+        List<Long> distinct = groupIds == null ? List.of() : groupIds.stream().distinct().toList();
+        List<SysGroup> groups = groupRepository.findAllById(distinct);
+        if (groups.size() != distinct.size()) {
+            throw new BusinessException(ErrorCode.GROUP_NOT_FOUND);
+        }
+        userGroupRepository.deleteByUserId(userId);
+        userGroupRepository.flush();
+        for (Long groupId : distinct) {
+            SysUserGroup relation = new SysUserGroup();
+            relation.setUserId(userId);
+            relation.setGroupId(groupId);
+            userGroupRepository.save(relation);
+        }
+    }
+
+    private UserDto toDto(SysUser user) {
+        List<Long> groupIds = userGroupRepository.findByUserId(user.getId()).stream()
+                .map(SysUserGroup::getGroupId)
+                .toList();
+        List<GroupDto> groups = groupRepository.findAllById(groupIds).stream()
+                .map(group -> GroupDto.of(group, 0))
+                .toList();
+        return UserDto.of(user, groups);
+    }
+
+    private SysUser requireUser(Long id) {
+        return userRepository.findById(id).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+}

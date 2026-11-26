@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="320" viewBox="0 0 600 320">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="320" rx="18" fill="url(#g)"/>
+  <circle cx="510" cy="58" r="90" fill="rgba(255,255,255,0.16)"/>
+  <circle cx="72" cy="288" r="96" fill="rgba(255,255,255,0.10)"/>
+  <text x="36" y="160" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="33" font-weight="700">英语阅读提分</text>
+  <text x="36" y="188" fill="rgba(255,255,255,0.88)" font-family="Microsoft YaHei, sans-serif" font-size="14">三个关键习惯</text>
+</svg>
