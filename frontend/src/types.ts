@@ -501,3 +501,193 @@ export interface ReviewSummary {
   reviewCount: number
   items: CourseReview[]
 }
+
+// ===== 模块 6：题库与考试 =====
+
+export interface PracticeChapter {
+  chapter: string
+  questionCount: number
+}
+
+export interface PracticeSubject {
+  subject: string
+  questionCount: number
+  chapters: PracticeChapter[]
+}
+
+export interface PracticeStats {
+  attemptCount: number
+  averagePercent: number
+  correctRate: number
+  wrongCount: number
+  masteredCount: number
+}
+
+export interface ExamRecord {
+  id: number
+  paperId?: number | null
+  title: string
+  mode: 'PRACTICE' | 'EXAM' | string
+  source: 'NORMAL' | 'WRONG' | string
+  subject?: string | null
+  chapter?: string | null
+  status: 'IN_PROGRESS' | 'SUBMITTED' | string
+  score?: number | null
+  totalScore: number
+  correctCount: number
+  wrongCount: number
+  questionCount: number
+  startedAt: string
+  submittedAt?: string | null
+  durationSeconds?: number | null
+}
+
+export interface Paper {
+  id: number
+  title: string
+  type: 'CHAPTER' | 'PAST' | 'MOCK' | string
+  subject: string
+  chapter?: string | null
+  description?: string | null
+  totalScore: number
+  durationMin: number
+  status: string
+  ownerUserId?: number | null
+  questionCount: number
+  createdAt?: string | null
+}
+
+export interface PracticeOverview {
+  subjects: PracticeSubject[]
+  papers: Paper[]
+  stats: PracticeStats
+  recentRecords: ExamRecord[]
+}
+
+export interface ExamOption {
+  label: string
+  content: string
+}
+
+export interface ExamQuestion {
+  questionId: number
+  type: 'SINGLE' | 'MULTIPLE' | 'JUDGE' | string
+  stem: string
+  options: ExamOption[]
+  score: number
+  sort: number
+}
+
+export interface ExamAnswerState {
+  questionId: number
+  answer?: string | null
+  isCorrect?: boolean | null
+  earnedScore?: number | null
+  correctAnswer?: string | null
+  analysis?: string | null
+}
+
+export interface ExamSession {
+  recordId: number
+  title: string
+  mode: string
+  source: string
+  status: string
+  totalScore: number
+  startedAt: string
+  deadlineAt?: string | null
+  remainingSeconds?: number | null
+  questions: ExamQuestion[]
+  answers: ExamAnswerState[]
+}
+
+export interface AnswerFeedback {
+  questionId: number
+  answer: string
+  isCorrect?: boolean | null
+  earnedScore?: number | null
+  correctAnswer?: string | null
+  analysis?: string | null
+}
+
+export interface ExamResultQuestion {
+  questionId: number
+  subject: string
+  chapter: string
+  type: string
+  stem: string
+  options: ExamOption[]
+  correctAnswer: string
+  myAnswer?: string | null
+  isCorrect: boolean
+  score: number
+  earnedScore: number
+  analysis?: string | null
+}
+
+export interface ExamResult {
+  record: ExamRecord
+  score: number
+  totalScore: number
+  correctCount: number
+  wrongCount: number
+  unansweredCount: number
+  durationSeconds?: number | null
+  questions: ExamResultQuestion[]
+}
+
+export interface WrongQuestion {
+  id: number
+  questionId: number
+  subject: string
+  chapter: string
+  type: string
+  stem: string
+  analysis?: string | null
+  correctAnswer: string
+  wrongCount: number
+  lastWrongAt: string
+  mastered: boolean
+  options: QuestionOption[]
+}
+
+export interface QuestionOption {
+  id?: number
+  label: string
+  content: string
+  isCorrect?: boolean | null
+  sort?: number
+}
+
+export interface QuestionItem {
+  id: number
+  subject: string
+  chapter: string
+  type: string
+  stem: string
+  analysis?: string | null
+  difficulty: number
+  status: string
+  ownerUserId?: number | null
+  correctAnswer: string
+  options: QuestionOption[]
+  createdAt?: string | null
+}
+
+export interface PaperQuestionItem {
+  questionId: number
+  subject: string
+  chapter: string
+  type: string
+  stem: string
+  analysis?: string | null
+  correctAnswer: string
+  score: number
+  sort: number
+  options: QuestionOption[]
+}
+
+export interface PaperDetail {
+  paper: Paper
+  questions: PaperQuestionItem[]
+}

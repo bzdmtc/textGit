@@ -66,6 +66,17 @@ public enum PrivilegeRegistry {
     REVIEW_BROWSE("review", "browse", "评价审核", "VIEW", "/admin/reviews", "ChatDotRound", 350),
     REVIEW_APPROVE("review", "approve", "审核评价", "ACTION", null, null, 351),
 
+    QUESTION_BROWSE("question", "browse", "题库管理", "VIEW", "/admin/questions", "EditPen", 360),
+    QUESTION_CREATE("question", "create", "新增题目", "ACTION", null, null, 361),
+    QUESTION_EDIT("question", "edit", "编辑题目", "ACTION", null, null, 362),
+    QUESTION_DELETE("question", "delete", "停用题目", "ACTION", null, null, 363),
+
+    PAPER_BROWSE("paper", "browse", "试卷管理", "VIEW", "/admin/papers", "Tickets", 370),
+    PAPER_CREATE("paper", "create", "新增试卷", "ACTION", null, null, 371),
+    PAPER_EDIT("paper", "edit", "编辑试卷", "ACTION", null, null, 372),
+    PAPER_DELETE("paper", "delete", "停用试卷", "ACTION", null, null, 373),
+    PAPER_PUBLISH("paper", "publish", "发布/下架试卷", "ACTION", null, null, 374),
+
     AUDIT_BROWSE("audit", "browse", "审计日志", "VIEW", "/admin/logs", "Document", 140),
 
     PROFILE_EDIT("profile", "edit", "编辑个人资料", "ACTION", null, null, 200);

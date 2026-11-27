@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { couponApi, myCourseApi, orderApi } from '@/api/trade'
 import { learnApi } from '@/api/learn'
+import { wrongQuestionApi } from '@/api/practice'
 import { useAuthStore } from '@/stores/auth'
 import {
   couponRuleText,
@@ -13,9 +14,9 @@ import {
   orderStatusMeta,
   userCouponStatusMeta,
 } from '@/utils/format'
-import type { FavoriteCourse, MyCourse, Order, UserCoupon } from '@/types'
+import type { FavoriteCourse, MyCourse, Order, UserCoupon, WrongQuestion } from '@/types'
 
-type TabName = 'orders' | 'coupons' | 'courses' | 'favorites'
+type TabName = 'orders' | 'coupons' | 'courses' | 'favorites' | 'wrong'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +36,9 @@ const myCourses = ref<MyCourse[]>([])
 const coursesLoading = ref(false)
 const favorites = ref<FavoriteCourse[]>([])
 const favoritesLoading = ref(false)
+const wrongItems = ref<WrongQuestion[]>([])
+const wrongTotal = ref(0)
+const wrongLoading = ref(false)
 
 const refundVisible = ref(false)
 const refundOrder = ref<Order | null>(null)
@@ -49,7 +53,9 @@ const visibleCoupons = computed(() => {
 const unusedCouponCount = computed(() => myCoupons.value.filter((coupon) => coupon.status === 'UNUSED').length)
 
 function normalizeTab(value: unknown): TabName {
-  return value === 'coupons' || value === 'courses' || value === 'favorites' ? value : 'orders'
+  return value === 'coupons' || value === 'courses' || value === 'favorites' || value === 'wrong'
+    ? value
+    : 'orders'
 }
 
 function loadTab(name: TabName) {
@@ -57,6 +63,7 @@ function loadTab(name: TabName) {
   if (name === 'coupons') loadCoupons()
   if (name === 'courses') loadCourses()
   if (name === 'favorites') loadFavorites()
+  if (name === 'wrong') loadWrong()
 }
 
 async function loadOrders() {
@@ -101,6 +108,17 @@ async function loadFavorites() {
     favorites.value = response.data.data
   } finally {
     favoritesLoading.value = false
+  }
+}
+
+async function loadWrong() {
+  wrongLoading.value = true
+  try {
+    const response = await wrongQuestionApi.page({ page: 1, size: 20 })
+    wrongItems.value = response.data.data.items
+    wrongTotal.value = response.data.data.total
+  } finally {
+    wrongLoading.value = false
   }
 }
 
@@ -414,6 +432,44 @@ onMounted(() => {
             <el-button type="primary" @click="router.push('/courses')">去课程中心</el-button>
           </el-empty>
         </div>
+      </el-tab-pane>
+
+      <el-tab-pane name="wrong" label="我的错题">
+        <div class="toolbar">
+          <div>
+            <strong>错题本</strong>
+            <span class="muted" style="margin-left: 10px">共 {{ wrongTotal }} 道，答错的题目会自动归档</span>
+          </div>
+          <el-button type="danger" plain @click="router.push('/wrong-book')">进入错题本</el-button>
+        </div>
+        <el-table v-loading="wrongLoading" :data="wrongItems" stripe>
+          <el-table-column label="题目" min-width="320" show-overflow-tooltip>
+            <template #default="{ row }">
+              <strong>{{ row.stem }}</strong>
+              <div class="muted">{{ row.subject }} · {{ row.chapter }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column label="错误次数" width="100">
+            <template #default="{ row }">{{ row.wrongCount }} 次</template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.mastered ? 'success' : 'warning'" size="small">
+                {{ row.mastered ? '已掌握' : '待攻克' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template #default>
+              <el-button link type="primary" @click="router.push('/wrong-book')">去攻克</el-button>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty description="还没有错题，去题库练习吧">
+              <el-button type="primary" @click="router.push('/practice')">去题库</el-button>
+            </el-empty>
+          </template>
+        </el-table>
       </el-tab-pane>
     </el-tabs>
 

@@ -1,6 +1,6 @@
 # 智学考研 · 基础版
 
-仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀** 和 **模块 5：学习**，后续模块按「题库 → 院校看板」逐个实现。
+仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀**、**模块 5：学习** 和 **模块 6：题库与考试**，后续按「院校看板 → 打磨交付」逐个实现。
 
 ## 当前已实现
 
@@ -35,8 +35,14 @@
   - 视频观看达 95% 或手动标记完成；课程进度按已完成课时重算
   - 课时笔记增删改、课程收藏与我的收藏、课程评价（一单一评）
   - 评价后台审核：通过后展示在课程详情并重算课程平均评分
-- 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券、秒杀、评价审核
-- Flyway 迁移与种子数据（V1–V13）
+- **题库与考试模块**：
+  - 后台题库：单选/多选/判断题与选项维护、难度、解析、启停用（被试卷引用的题目禁止停用）
+  - 后台试卷：从题库组卷、逐题分值、发布/下架、时长与说明；讲师仅能维护自有题目与试卷
+  - 章节练习：按科目/章节抽题，作答即时判题并展示正确答案与解析；错题自动进入错题本
+  - 限时套卷：开考固化题目快照、倒计时自动交卷、服务端统一判分、成绩报告与逐题回顾
+  - 错题本：按科目/掌握状态筛选、查看答案、标记掌握、移除、未掌握错题重做（答对自动掌握）
+- 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券、秒杀、评价审核、题库、试卷
+- Flyway 迁移与种子数据（V1–V15）
 
 ## 技术栈
 
@@ -202,6 +208,23 @@ node frontend/scripts/learn-ui-smoke.cjs  # 浏览器 UI 全链路（需前后�
 
 学习设计细节见 [docs/learn.md](docs/learn.md)。
 
+## 题库与考试演示流程
+
+1. `admin` → 题库管理 → 新增题目（单选/多选/判断）并配置选项与正确答案；被试卷引用的题目不能停用。
+2. 后台试卷管理 → 新增试卷 → 从题库添加题目、设置每题分值与考试时长 → 发布。
+3. `student` → 题库 → 选择科目/章节开始章节练习：每题作答后立即判题并展示解析；答错自动进入错题本。
+4. 结束练习查看成绩报告（答对/答错/未作答/得分率/逐题解析）。
+5. 错题本查看答案、标记已掌握，或点击「错题重做」只抽未掌握错题；重做答对自动标记掌握。
+6. 题库首页选择已发布试卷开始限时考试：倒计时结束自动交卷，交卷后服务端统一判分并生成成绩报告。
+
+```bash
+sqlcmd -S localhost -C -E -b -I -f 65001 -d smart_learning -i scripts/reset-practice-data.sql
+node scripts/practice-smoke.mjs            # API：建题/组卷/发布 → 练习判题 → 错题本 → 套卷判分 → 权限
+node frontend/scripts/practice-ui-smoke.cjs # 浏览器 UI 全链路（需前后端已启动）
+```
+
+题库设计细节（判分规则、快照、错题口径、权限）见 [docs/practice.md](docs/practice.md)。
+
 ## 核心接口
 
 | 方法 | 路径 | 说明 |
@@ -248,6 +271,15 @@ node frontend/scripts/learn-ui-smoke.cjs  # 浏览器 UI 全链路（需前后�
 | POST | `/api/v1/learn/courses/{courseId}/reviews` | 提交课程评价 |
 | GET | `/api/v1/public/courses/{courseId}/reviews` | 公开评价汇总 |
 | GET/PUT | `/api/v1/admin/reviews...` | 后台评价审核 |
+| GET | `/api/v1/practice/overview` | 题库首页：科目/章节统计、已发布试卷、我的统计与记录 |
+| POST | `/api/v1/practice/sessions` | 开始章节练习 / 错题重做 |
+| POST | `/api/v1/exams` | 开始限时套卷 |
+| GET/PUT | `/api/v1/exams/{recordId}`、`/answers` | 答题会话 / 保存答案（练习即时判题） |
+| POST | `/api/v1/exams/{recordId}/submit` | 交卷并服务端判分 |
+| GET | `/api/v1/exams/{recordId}/result`、`/exams/records` | 成绩报告 / 我的练习考试记录 |
+| GET/PUT/DELETE | `/api/v1/wrong-questions...` | 错题本列表 / 标记掌握 / 移除 |
+| GET/POST/PUT | `/api/v1/admin/questions...` | 后台题库 CRUD 与启停用 |
+| GET/POST/PUT/DELETE | `/api/v1/admin/papers...` | 后台组卷、发布/下架、停用 |
 | GET | `/api/v1/system/route-check/read` | 验证读路由（`smart_learning_read`） |
 | GET | `/api/v1/system/route-check/master` | 验证写路由（`smart_learning`） |
 | POST | `/api/v1/system/kafka-check` | Kafka 生产者冒烟（发送 `system-check`） |
@@ -260,8 +292,9 @@ node frontend/scripts/learn-ui-smoke.cjs  # 浏览器 UI 全链路（需前后�
 - 读写分离：[docs/read-write-splitting.md](docs/read-write-splitting.md)
 - 秒杀设计：[docs/seckill.md](docs/seckill.md)
 - 学习设计：[docs/learn.md](docs/learn.md)
+- 题库考试设计：[docs/practice.md](docs/practice.md)
 - 2026-11-25 会话记录：[docs/chat-history-2026-11-25.md](docs/chat-history-2026-11-25.md)
 
 ## 后续模块
 
-题库考试、院校与看板、实时聊天、Elasticsearch 等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。
+院校库与统计看板、实时聊天、Elasticsearch 等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。

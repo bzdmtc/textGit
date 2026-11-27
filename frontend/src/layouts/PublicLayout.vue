@@ -12,6 +12,7 @@ const hasAdminMenu = computed(() => store.menus.some((menu) => menu.path.startsW
 const navs = [
   { path: '/', label: '首页' },
   { path: '/courses', label: '课程中心' },
+  { path: '/practice', label: '题库' },
   { path: '/seckill', label: '秒杀专区' },
   { path: '/teachers', label: '名师团队' },
   { path: '/articles', label: '考研资讯' },
@@ -78,7 +79,7 @@ async function logout() {
         </div>
         <div class="footer-meta">
           <span>Spring Boot 4.2 · Vue 3</span>
-          <span>基础版 · 模块 5：学习</span>
+          <span>基础版 · 模块 6：题库与考试</span>
         </div>
       </div>
     </footer>

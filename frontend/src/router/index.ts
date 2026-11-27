@@ -13,6 +13,30 @@ const router = createRouter({
         { path: 'courses/:id', name: 'course-detail', component: () => import('@/views/public/CourseDetailView.vue') },
         { path: 'seckill', name: 'seckill', component: () => import('@/views/public/SeckillView.vue') },
         {
+          path: 'practice',
+          name: 'practice',
+          component: () => import('@/views/public/PracticeView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'practice/session/:recordId',
+          name: 'practice-session',
+          component: () => import('@/views/public/PracticeSessionView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'practice/result/:recordId',
+          name: 'practice-result',
+          component: () => import('@/views/public/PracticeResultView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'wrong-book',
+          name: 'wrong-book',
+          component: () => import('@/views/public/WrongBookView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'learn/:courseId/:lessonId?',
           name: 'learn',
           component: () => import('@/views/public/LearnView.vue'),
@@ -131,6 +155,18 @@ const router = createRouter({
           name: 'admin-reviews',
           component: () => import('@/views/admin/ReviewListView.vue'),
           meta: { requiresAuth: true, priv: { module: 'review', method: 'browse' } },
+        },
+        {
+          path: 'questions',
+          name: 'admin-questions',
+          component: () => import('@/views/admin/QuestionListView.vue'),
+          meta: { requiresAuth: true, priv: { module: 'question', method: 'browse' } },
+        },
+        {
+          path: 'papers',
+          name: 'admin-papers',
+          component: () => import('@/views/admin/PaperListView.vue'),
+          meta: { requiresAuth: true, priv: { module: 'paper', method: 'browse' } },
         },
         {
           path: 'logs',

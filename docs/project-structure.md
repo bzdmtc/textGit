@@ -1,6 +1,6 @@
 # 项目代码地图
 
-> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀** 和 **模块 5：学习**。
+> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀**、**模块 5：学习** 和 **模块 6：题库与考试**。
 
 ## 一、目录树
 
@@ -15,10 +15,12 @@ smart_learning/
 │   ├── read-write-splitting.md            # 主从读写分离设计
 │   ├── seckill.md                         # 秒杀：Redis/Kafka/库存对账
 │   ├── learn.md                           # 学习：进度/笔记/收藏/评价审核
+│   ├── practice.md                        # 题库：判分/套卷/错题本/权限
 │   └── chat-history-2026-11-25.md         # 本次项目会话记录
 ├── scripts/
 │   ├── init-databases.sql                 # 建库、账号、权限
-│   └── sync-read-db.sql                   # 开发环境主库→从库同步
+│   ├── sync-read-db.sql                   # 开发环境主库→从库同步
+│   └── reset-practice-data.sql            # 重置练习/考试与冒烟题目试卷
 ├── src/main/java/com/example/smart_learning/
 │   ├── SmartLearningApplication.java      # 启动类
 │   ├── common/
@@ -401,6 +403,67 @@ frontend/src/
 | `scripts/learn-smoke.mjs` | 购课 → 拒绝未购 → 进度 → 笔记 → 收藏 → 评价 → 审核 → 评分 → 我的课程 |
 | `frontend/scripts/learn-ui-smoke.cjs` | 浏览器：学习页播放/标记完成/笔记/收藏/评价 + 后台审核 |
 
+## 四之四、模块 6：题库与考试代码地图
+
+### 后端新增
+
+| 路径 | 说明 |
+|---|---|
+| `question/entity/Question`、`QuestionOption` | 题目与选项 |
+| `question/repository/*` | 题库检索、按科目/章节抽题、选项批量加载 |
+| `question/service/QuestionAdminService` | 题目 CRUD、选项校验、启停用（被引用禁止停用）、OWN 数据范围 |
+| `question/controller/QuestionAdminController` | `/api/v1/admin/questions*` |
+| `exam/entity/Paper`、`PaperQuestion`、`ExamRecord`、`ExamAnswer`、`WrongQuestion` | 试卷/组卷/作答/错题 |
+| `exam/repository/*` | 试卷检索、作答快照、统计、错题查询与重做抽题 |
+| `exam/service/QuestionGrader` | 纯判分：答案归一并集比较、选项合法性校验（单测） |
+| `exam/service/PaperAdminService` | 组卷、编辑、发布/下架、停用、总分重算 |
+| `exam/service/ExamService` | 题库首页、章节练习、错题重做、限时套卷、即时判题、交卷判分、成绩报告、自动交卷 |
+| `exam/service/WrongQuestionService` | 错题分页、标记掌握、移除 |
+| `exam/controller/PracticeController` | `/api/v1/practice/**` |
+| `exam/controller/ExamController` | `/api/v1/exams/**` |
+| `exam/controller/WrongQuestionController` | `/api/v1/wrong-questions/**` |
+| `exam/controller/PaperAdminController` | `/api/v1/admin/papers/**` |
+| `exam/dto/*` | 练习/会话/成绩/错题/试卷/题目快照 DTO |
+| `src/test/.../QuestionGraderTest` | 判分规则单元测试 |
+
+### 前端新增
+
+| 文件 | 说明 |
+|---|---|
+| `views/public/PracticeView.vue` | 题库首页：科目/章节练习、试卷中心、统计、最近记录 |
+| `views/public/PracticeSessionView.vue` | 答题页：选项作答、练习即时解析、答题卡、考试倒计时/自动交卷 |
+| `views/public/PracticeResultView.vue` | 成绩报告：得分环、统计、逐题回顾与解析 |
+| `views/public/WrongBookView.vue` | 错题本：筛选、查看答案、标记掌握、移除、错题重做 |
+| `views/admin/QuestionListView.vue` | 后台题库：筛选、题目/选项编辑器、启停用 |
+| `views/admin/PaperListView.vue` | 后台试卷：组卷、逐题分值、发布/下架、停用 |
+| `views/public/UserCenterView.vue` | 新增「我的错题」页签 |
+| `api/practice.ts`、`types.ts` | 练习/考试/错题/题库后台接口与类型 |
+| `router/index.ts` | `/practice`、`/practice/session/:recordId`、`/practice/result/:recordId`、`/wrong-book`、`/admin/questions`、`/admin/papers` |
+| `layouts/PublicLayout.vue`、`AdminLayout.vue` | 前台「题库」导航、后台题库/试卷菜单与图标 |
+
+### 路径 ↔ 功能对照
+
+| 路径 | 模块 | 功能 |
+|---|---|---|
+| `/practice` | 题库 | 首页：章节练习、试卷中心、我的统计、最近记录 |
+| `/practice/session/:recordId` | 题库 | 章节练习/错题重做/限时套卷答题 |
+| `/practice/result/:recordId` | 题库 | 成绩报告与逐题解析 |
+| `/wrong-book` | 题库 | 错题本与错题重做 |
+| `/api/v1/practice/overview` | 题库 | 科目/章节统计、已发布试卷、统计、最近记录 |
+| `/api/v1/practice/sessions` | 题库 | 开始章节练习 / 错题重做 |
+| `/api/v1/exams*` | 题库 | 开考、会话、保存答案、交卷、成绩、记录 |
+| `/api/v1/wrong-questions*` | 题库 | 错题列表、掌握状态、移除 |
+| `/admin/questions` | 题库 | 题目/选项管理与启停用（`question:*`） |
+| `/admin/papers` | 题库 | 组卷、发布/下架、停用（`paper:*`） |
+
+### 自动化验收脚本
+
+| 脚本 | 说明 |
+|---|---|
+| `scripts/practice-smoke.mjs` | 建题/组卷/发布 → 练习即时判题 → 错题本/重做 → 套卷判分 → 权限与数据隔离 |
+| `frontend/scripts/practice-ui-smoke.cjs` | 浏览器：题库首页 → 练习 → 成绩 → 错题本 → 考试 → 后台题库/试卷 |
+| `scripts/reset-practice-data.sql` | 清理练习/考试/错题与冒烟创建的题目、试卷 |
+
 ## 五、数据库迁移对照
 
 | 脚本 | 模块 | 内容 |
@@ -418,6 +481,8 @@ frontend/src/
 | `V11__seckill_seed.sql` | 秒杀 | 4 个秒杀权限点 + ADMIN 授权 + 2 个演示活动（进行中/即将开始） |
 | `V12__learn_schema.sql` | 学习 | `lesson_progress`、`note`、`course_favorite`、`course_review` 及唯一约束/索引 |
 | `V13__learn_priv_seed.sql` | 学习 | 2 个评价审核权限点 + ADMIN 授权 |
+| `V14__practice_schema.sql` | 题库 | `question`、`question_option`、`paper`、`paper_question`、`exam_record`、`exam_answer`、`wrong_question` 及约束/索引 |
+| `V15__practice_seed.sql` | 题库 | 9 个题库/试卷权限点、ADMIN/TEACHER 授权、19 道演示题、6 套试卷 |
 
 ## 六、后续模块规划
 
@@ -428,7 +493,7 @@ frontend/src/
 | 交易 | `order/`、`payment/`、`coupon/`、`enrollment/` | 已完成 |
 | 秒杀 | `seckill/`、Kafka 生产者/消费者、Redis Lua | 已完成 |
 | 学习 | `learn/`、播放器/进度/笔记/收藏/评价 | 已完成 |
-| 题库考试 | `question/`、`exam/` | 待实现（下一模块） |
-| 院校看板 | `university/`、`stats/` | 待实现 |
+| 题库考试 | `question/`、`exam/`、练习/套卷/错题本/成绩 | 已完成 |
+| 院校看板 | `university/`、`stats/` | 待实现（下一模块） |
 | 实时聊天 | `chat/`（WebSocket/STOMP） | 后续 |
 | Elasticsearch | `search/` 的 ES 实现 | 后续 |
