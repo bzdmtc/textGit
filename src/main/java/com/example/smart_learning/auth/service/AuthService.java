@@ -166,7 +166,7 @@ public class AuthService {
 
     private MeResponse buildMe(SysUser user, LoginUser loginUser) {
         UserProfile profile = new UserProfile(
-                user.getId(), user.getAccount(), user.getRealname(), user.getNickname(),
+                user.getId(), user.getAccount(), user.getRealname(), user.getNickname(), user.getPosition(),
                 user.getPhone(), user.getEmail(), user.getAvatar(),
                 loginUser.getPermissions().groupCodes());
         return new MeResponse(profile,
@@ -182,6 +182,7 @@ public class AuthService {
         user.setAccount(uniqueAccount("u" + phone));
         user.setPhone(phone);
         user.setNickname("学员" + phone.substring(phone.length() - 4));
+        user.setPosition("学员");
         user.setStatus("ACTIVE");
         user.setPrivVersion(0L);
         user = userRepository.save(user);
@@ -195,6 +196,7 @@ public class AuthService {
         user.setAccount(uniqueAccount("e_" + prefix));
         user.setEmail(email);
         user.setNickname(prefix);
+        user.setPosition("学员");
         user.setStatus("ACTIVE");
         user.setPrivVersion(0L);
         user = userRepository.save(user);

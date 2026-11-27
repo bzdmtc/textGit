@@ -10,13 +10,15 @@ sys_user ──< sys_user_group >── sys_group ──< sys_group_priv >──
 
 | 表 | 说明 |
 |---|---|
-| `sys_user` | 用户，含 `priv_version`（权限版本） |
+| `sys_user` | 用户，含 `priv_version`（权限版本）与 `position`（职位，仅组织展示） |
 | `sys_group` | 权限分组，含 `data_scope`（ALL/OWN/SELF）、`limited` |
 | `sys_user_group` | 用户—分组多对多，`UNIQUE(user_id, group_id)` |
 | `sys_priv` | 权限字典，`module + method`，`type` 为 VIEW/ACTION |
 | `sys_group_priv` | 分组授权，`UNIQUE(group_id, priv_id)`，FK 到 `sys_priv` |
 | `sys_dept` | 部门（预留） |
 | `sys_audit_log` | 权限变更审计 |
+
+**职位与分组的区别**：`sys_user.position` 是组织岗位信息（如「考研政治讲师」「学员」），只用于展示与检索，不参与鉴权；真正的权限仍只由 `sys_user_group → sys_group_priv` 的并集决定。后续如果需要受控职位字典，可新增 `sys_position` 表并把 `position` 平滑迁移为 `position_id`，不影响现有分组鉴权。
 
 ## 2. 权限点
 

@@ -316,6 +316,8 @@ frontend/src/
 | `V5__course_content_polish.sql` | 内容 | 补充政治第二章节课时 |
 | `V6__trade_schema.sql` | 交易 | `coupon`、`user_coupon`、`orders`、`order_item`、`payment_record`、`refund_request`、`user_course` 及索引/唯一约束 |
 | `V7__trade_seed.sql` | 交易 | 7 个新权限点（订单/退款/优惠券）、管理员授权、3 张演示优惠券 |
+| `V8__user_position.sql` | 系统底座 | `sys_user.position`（职位，独立于权限分组） |
+| `V9__user_position_seed.sql` | 系统底座 | 补充演示账号职位（独立迁移，避免同批编译时列不存在） |
 
 ## 六、后续模块规划
 

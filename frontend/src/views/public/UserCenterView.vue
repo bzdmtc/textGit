@@ -168,6 +168,7 @@ onMounted(() => {
       <div class="user-meta">
         <h1>{{ store.displayName }}</h1>
         <p>
+          <span v-if="store.me?.user.position">{{ store.me?.user.position }}</span>
           <span>{{ store.me?.user.account }}</span>
           <span v-if="store.me?.user.phone">{{ store.me?.user.phone }}</span>
           <span v-if="store.me?.user.email">{{ store.me?.user.email }}</span>

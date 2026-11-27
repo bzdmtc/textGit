@@ -42,6 +42,10 @@ public class SysUser extends BaseEntity {
     @Column(length = 64)
     private String nickname;
 
+    /** 职位/岗位，组织信息，不参与权限判断 */
+    @Column(length = 64)
+    private String position;
+
     @Column(length = 500)
     private String avatar;
 

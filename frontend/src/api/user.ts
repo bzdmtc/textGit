@@ -6,6 +6,7 @@ export interface UserCreatePayload {
   password: string
   realname?: string
   nickname?: string
+  position?: string
   phone?: string
   email?: string
   groupIds?: number[]
@@ -14,6 +15,7 @@ export interface UserCreatePayload {
 export interface UserUpdatePayload {
   realname?: string
   nickname?: string
+  position?: string
   phone?: string
   email?: string
   avatar?: string

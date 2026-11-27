@@ -79,6 +79,7 @@ public class UserAdminService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRealname(request.realname());
         user.setNickname(request.nickname());
+        user.setPosition(blankToNull(request.position()));
         user.setPhone(blankToNull(request.phone()));
         user.setEmail(blankToNull(request.email()));
         user.setStatus("ACTIVE");
@@ -88,7 +89,9 @@ public class UserAdminService {
             replaceGroups(user.getId(), request.groupIds());
         }
         auditService.record("USER_CREATE", "USER", user.getId(), null,
-                java.util.Map.of("account", account, "groupIds", request.groupIds()));
+                java.util.Map.of("account", account,
+                        "position", user.getPosition() == null ? "" : user.getPosition(),
+                        "groupIds", request.groupIds() == null ? List.of() : request.groupIds()));
         return toDto(user);
     }
 
@@ -106,6 +109,7 @@ public class UserAdminService {
         }
         user.setRealname(request.realname());
         user.setNickname(request.nickname());
+        user.setPosition(blankToNull(request.position()));
         user.setPhone(blankToNull(request.phone()));
         user.setEmail(blankToNull(request.email()));
         user.setAvatar(request.avatar());

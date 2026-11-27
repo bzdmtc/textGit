@@ -10,6 +10,7 @@ public record UserDto(
         String account,
         String realname,
         String nickname,
+        String position,
         String phone,
         String email,
         String avatar,
@@ -21,7 +22,7 @@ public record UserDto(
 
     public static UserDto of(SysUser user, List<GroupDto> groups) {
         return new UserDto(user.getId(), user.getAccount(), user.getRealname(), user.getNickname(),
-                user.getPhone(), user.getEmail(), user.getAvatar(), user.getStatus(),
+                user.getPosition(), user.getPhone(), user.getEmail(), user.getAvatar(), user.getStatus(),
                 user.getPrivVersion(), user.getLastLoginAt(), groups);
     }
 }

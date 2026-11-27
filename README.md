@@ -7,6 +7,7 @@
 - 前后端分离工程骨架（Spring Boot 4.2 + Vue 3 + TypeScript）
 - SQL Server 主从双数据源读写分离（`smart_learning` / `smart_learning_read`）
 - 禅道式权限分组：用户、分组、权限点、分组授权、用户分组、审计日志全部落库
+- 用户职位（`position`）：与权限分组分离的组织岗位信息，仅展示/检索，不参与鉴权
 - 账号密码 + 手机号验证码 + 邮箱验证码三种登录
 - JWT access token + 数据库持久化 refresh token（轮换、吊销）
 - 权限驱动菜单、路由守卫、按钮权限指令
@@ -25,7 +26,7 @@
   - 个人中心：我的订单、我的优惠券、我的课程；后台：订单管理、退款审核、优惠券管理
   - 定时任务：超时关单、优惠券过期、支付满 7 天自动完成
 - 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券
-- Flyway 迁移与种子数据（V1–V7）
+- Flyway 迁移与种子数据（V1–V9）
 
 ## 技术栈
 
@@ -91,7 +92,7 @@ sqlcmd -S localhost -E -C -i scripts/init-databases.sql \
   -v MASTER_PASSWORD="<MASTER_DB_PASSWORD>" READ_PASSWORD="<READ_DB_PASSWORD>"
 ```
 
-首次启动时 Flyway 只对主库执行迁移（当前 V1–V7）。开发环境可把主库备份还原到从库：
+首次启动时 Flyway 只对主库执行迁移（当前 V1–V9）。开发环境可把主库备份还原到从库：
 
 ```bash
 sqlcmd -S localhost -E -C -Q "BACKUP DATABASE smart_learning TO DISK=N'C:\temp\smart_learning.bak' WITH INIT"

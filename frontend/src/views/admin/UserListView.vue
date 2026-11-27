@@ -19,6 +19,7 @@ const createForm = reactive<UserCreatePayload>({
   password: '',
   realname: '',
   nickname: '',
+  position: '',
   phone: '',
   email: '',
   groupIds: [],
@@ -29,6 +30,7 @@ const editingId = ref<number | null>(null)
 const editForm = reactive<UserUpdatePayload>({
   realname: '',
   nickname: '',
+  position: '',
   phone: '',
   email: '',
   avatar: '',
@@ -69,6 +71,7 @@ function openCreate() {
     password: '',
     realname: '',
     nickname: '',
+    position: '',
     phone: '',
     email: '',
     groupIds: [],
@@ -92,6 +95,7 @@ function openEdit(user: User) {
   Object.assign(editForm, {
     realname: user.realname || '',
     nickname: user.nickname || '',
+    position: user.position || '',
     phone: user.phone || '',
     email: user.email || '',
     avatar: user.avatar || '',
@@ -154,7 +158,7 @@ onMounted(async () => {
     <div class="page-header">
       <div>
         <div class="page-title">用户管理</div>
-        <div class="muted">用户可属于多个权限分组，有效权限取并集</div>
+        <div class="muted">职位是组织岗位信息；权限由多个分组并集决定，两者互不影响</div>
       </div>
       <el-button v-priv="{ module: 'user', method: 'create' }" type="primary" @click="openCreate">
         新增用户
@@ -165,7 +169,7 @@ onMounted(async () => {
       <div class="toolbar">
         <el-input
           v-model="keyword"
-          placeholder="搜索账号 / 姓名 / 手机 / 邮箱"
+          placeholder="搜索账号 / 姓名 / 职位 / 手机 / 邮箱"
           style="width: 320px"
           clearable
           @keyup.enter="search"
@@ -178,6 +182,9 @@ onMounted(async () => {
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="account" label="账号" width="130" />
         <el-table-column prop="realname" label="姓名" width="110" />
+        <el-table-column prop="position" label="职位" width="130">
+          <template #default="{ row }">{{ row.position || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="phone" label="手机" width="140" />
         <el-table-column prop="email" label="邮箱" min-width="180" />
         <el-table-column label="分组" min-width="180">
@@ -246,6 +253,9 @@ onMounted(async () => {
         <el-form-item label="昵称">
           <el-input v-model="createForm.nickname" />
         </el-form-item>
+        <el-form-item label="职位">
+          <el-input v-model="createForm.position" placeholder="例如：考研政治讲师、学员" />
+        </el-form-item>
         <el-form-item label="手机">
           <el-input v-model="createForm.phone" />
         </el-form-item>
@@ -271,6 +281,9 @@ onMounted(async () => {
         </el-form-item>
         <el-form-item label="昵称">
           <el-input v-model="editForm.nickname" />
+        </el-form-item>
+        <el-form-item label="职位">
+          <el-input v-model="editForm.position" placeholder="例如：考研政治讲师、学员" />
         </el-form-item>
         <el-form-item label="手机">
           <el-input v-model="editForm.phone" />

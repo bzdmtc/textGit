@@ -15,6 +15,8 @@ public interface SysUserRepository extends JpaRepository<SysUser, Long> {
     @Query("select u from SysUser u where (:keyword is null or :keyword = '' " +
             "or lower(u.account) like lower(concat('%', :keyword, '%')) " +
             "or lower(coalesce(u.realname, '')) like lower(concat('%', :keyword, '%')) " +
+            "or lower(coalesce(u.nickname, '')) like lower(concat('%', :keyword, '%')) " +
+            "or lower(coalesce(u.position, '')) like lower(concat('%', :keyword, '%')) " +
             "or coalesce(u.phone, '') like concat('%', :keyword, '%') " +
             "or lower(coalesce(u.email, '')) like lower(concat('%', :keyword, '%'))) " +
             "order by u.id desc")

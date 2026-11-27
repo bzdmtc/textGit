@@ -7,6 +7,7 @@ public record UserProfile(
         String account,
         String realname,
         String nickname,
+        String position,
         String phone,
         String email,
         String avatar,

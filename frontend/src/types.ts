@@ -26,6 +26,7 @@ export interface UserProfile {
   account: string
   realname?: string | null
   nickname?: string | null
+  position?: string | null
   phone?: string | null
   email?: string | null
   avatar?: string | null
@@ -81,6 +82,7 @@ export interface User {
   account: string
   realname?: string | null
   nickname?: string | null
+  position?: string | null
   phone?: string | null
   email?: string | null
   avatar?: string | null

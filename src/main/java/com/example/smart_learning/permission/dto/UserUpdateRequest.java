@@ -9,6 +9,8 @@ public record UserUpdateRequest(
         String realname,
         @Size(max = 64, message = "昵称过长")
         String nickname,
+        @Size(max = 64, message = "职位过长")
+        String position,
         @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
         String phone,
         @Email(message = "邮箱格式不正确")
