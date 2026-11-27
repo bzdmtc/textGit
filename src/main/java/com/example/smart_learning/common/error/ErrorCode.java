@@ -26,6 +26,8 @@ public enum ErrorCode {
     NOT_ENROLLED(30009, "请先购买课程后再学习"),
     REVIEW_NOT_FOUND(30010, "评价不存在"),
     REVIEW_STATUS_INVALID(30011, "评价当前状态不允许该操作"),
+    POSITION_NOT_FOUND(30012, "职位不存在"),
+    POSITION_NAME_EXISTS(30013, "职位名称已存在"),
 
     COURSE_NOT_PURCHASABLE(40001, "课程不存在或未上架"),
     ALREADY_ENROLLED(40002, "您已拥有该课程"),

@@ -15,10 +15,11 @@ sys_user ──< sys_user_group >── sys_group ──< sys_group_priv >──
 | `sys_user_group` | 用户—分组多对多，`UNIQUE(user_id, group_id)` |
 | `sys_priv` | 权限字典，`module + method`，`type` 为 VIEW/ACTION |
 | `sys_group_priv` | 分组授权，`UNIQUE(group_id, priv_id)`，FK 到 `sys_priv` |
+| `sys_position` | 职位字典，`name` 唯一，`group_id` 绑定默认权限分组，`status`/`sort` |
 | `sys_dept` | 部门（预留） |
 | `sys_audit_log` | 权限变更审计 |
 
-**职位与分组的区别**：`sys_user.position` 是组织岗位信息（如「考研政治讲师」「学员」），只用于展示与检索，不参与鉴权；真正的权限仍只由 `sys_user_group → sys_group_priv` 的并集决定。后续如果需要受控职位字典，可新增 `sys_position` 表并把 `position` 平滑迁移为 `position_id`，不影响现有分组鉴权。
+**职位与分组的区别**：`sys_user.position` 是组织岗位信息（如「考研政治讲师」「学员」），本身不直接鉴权；真正的权限仍只由 `sys_user_group → sys_group_priv` 的并集决定。职位通过 `sys_position.group_id` 绑定一个**默认权限分组**，用于新增/编辑用户时自动带出分组，管理员仍可手动调整。
 
 ### 分组管理页
 
@@ -28,6 +29,21 @@ sys_user ──< sys_user_group >── sys_group ──< sys_group_priv >──
 - 「用户列表」显示人数，点击弹窗查看组内用户（账号/姓名、职位、状态、最后登录）；接口 `GET /api/v1/admin/groups/{id}/users`。
 - 数据范围、受限、排序等高级项收进「编辑分组」弹窗；分配权限仍在操作列的「分配权限」。
 - 新增 `V16__group_description.sql` / `V17__group_description_seed.sql`，为内置分组补充描述。
+
+### 职位字典与默认分组
+
+对齐禅道「添加用户选择职位后默认带出权限分组」：
+
+- `sys_position`（V18）保存职位名称、默认分组、状态与排序；`V19` 预置系统管理员/讲师/考研政治讲师/学员/受限用户。
+- 用户管理页「职位管理」可新增、编辑、启停职位；新增/编辑用户时职位为下拉选择。
+- 选择职位后，前端自动把 `sys_position.group_id` 加入用户分组；保存时仍以最终勾选的分组为准，可手动增删。
+- 后端兜底：新增用户时若职位有映射且未传分组，自动使用默认分组；编辑用户时若职位变化且未传 `groupIds`，把默认分组并入现有分组。显式传 `groupIds` 时整组覆盖。
+- 修改职位名称会同步更新现有用户的 `sys_user.position` 显示值；修改职位映射不会回溯改动现有用户的分组。
+- 职位管理接口复用 `user:browse`（查询）与 `user:edit`（增改/状态），不新增权限点：
+  - `GET /api/v1/admin/positions`
+  - `POST /api/v1/admin/positions`
+  - `PUT /api/v1/admin/positions/{id}`
+  - `PUT /api/v1/admin/positions/{id}/status`
 
 ## 2. 权限点
 
@@ -119,3 +135,4 @@ V4 迁移新增 23 个权限点（总数 38）：
 6. 提交未注册的权限点 ID 被拒绝。
 7. 每次授权变更在 `sys_audit_log` 有前后差异记录。
 8. 分组列表按「ID / 分组名称 / 分组描述 / 用户列表 / 操作」展示；点击用户列表可查看组内用户；编辑弹窗不含角色标签，职位仍在用户管理中维护。
+9. 新增/编辑用户选择职位后自动带出默认权限分组；可手动取消或追加分组；保存后权限按最终分组并集计算。

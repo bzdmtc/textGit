@@ -19,6 +19,7 @@ export interface UserUpdatePayload {
   phone?: string
   email?: string
   avatar?: string
+  groupIds?: number[]
 }
 
 export const userApi = {

@@ -10,8 +10,10 @@ import com.example.smart_learning.permission.dto.UserDto;
 import com.example.smart_learning.permission.dto.UserPermissionView;
 import com.example.smart_learning.permission.dto.UserUpdateRequest;
 import com.example.smart_learning.permission.entity.SysGroup;
+import com.example.smart_learning.permission.entity.SysPosition;
 import com.example.smart_learning.permission.entity.SysUserGroup;
 import com.example.smart_learning.permission.repository.SysGroupRepository;
+import com.example.smart_learning.permission.repository.SysPositionRepository;
 import com.example.smart_learning.permission.repository.SysUserGroupRepository;
 import com.example.smart_learning.user.entity.SysUser;
 import com.example.smart_learning.user.repository.SysUserRepository;
@@ -22,7 +24,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Master
@@ -31,6 +35,7 @@ public class UserAdminService {
     private final SysUserRepository userRepository;
     private final SysGroupRepository groupRepository;
     private final SysUserGroupRepository userGroupRepository;
+    private final SysPositionRepository positionRepository;
     private final PasswordEncoder passwordEncoder;
     private final PermissionService permissionService;
     private final AuditService auditService;
@@ -38,12 +43,14 @@ public class UserAdminService {
     public UserAdminService(SysUserRepository userRepository,
                             SysGroupRepository groupRepository,
                             SysUserGroupRepository userGroupRepository,
+                            SysPositionRepository positionRepository,
                             PasswordEncoder passwordEncoder,
                             PermissionService permissionService,
                             AuditService auditService) {
         this.userRepository = userRepository;
         this.groupRepository = groupRepository;
         this.userGroupRepository = userGroupRepository;
+        this.positionRepository = positionRepository;
         this.passwordEncoder = passwordEncoder;
         this.permissionService = permissionService;
         this.auditService = auditService;
@@ -85,13 +92,22 @@ public class UserAdminService {
         user.setStatus("ACTIVE");
         user.setPrivVersion(0L);
         user = userRepository.save(user);
-        if (request.groupIds() != null && !request.groupIds().isEmpty()) {
-            replaceGroups(user.getId(), request.groupIds());
+        // 选职位后未显式指定分组时，默认带出该职位的权限分组（仍可在表单中调整）
+        List<Long> effectiveGroupIds = request.groupIds();
+        // 只有未传 groupIds 时才按职位兜底；显式传空数组表示管理员清空了分组
+        if (effectiveGroupIds == null && user.getPosition() != null) {
+            Long defaultGroupId = defaultGroupId(user.getPosition());
+            if (defaultGroupId != null) {
+                effectiveGroupIds = List.of(defaultGroupId);
+            }
+        }
+        if (effectiveGroupIds != null && !effectiveGroupIds.isEmpty()) {
+            replaceGroups(user.getId(), effectiveGroupIds);
         }
         auditService.record("USER_CREATE", "USER", user.getId(), null,
                 java.util.Map.of("account", account,
                         "position", user.getPosition() == null ? "" : user.getPosition(),
-                        "groupIds", request.groupIds() == null ? List.of() : request.groupIds()));
+                        "groupIds", effectiveGroupIds == null ? List.of() : effectiveGroupIds));
         return toDto(user);
     }
 
@@ -107,13 +123,34 @@ public class UserAdminService {
                 && userRepository.existsByEmail(request.email())) {
             throw new BusinessException(ErrorCode.EMAIL_EXISTS);
         }
+        String newPosition = blankToNull(request.position());
+        boolean positionChanged = !Objects.equals(user.getPosition(), newPosition);
         user.setRealname(request.realname());
         user.setNickname(request.nickname());
-        user.setPosition(blankToNull(request.position()));
+        user.setPosition(newPosition);
         user.setPhone(blankToNull(request.phone()));
         user.setEmail(blankToNull(request.email()));
         user.setAvatar(request.avatar());
         user = userRepository.save(user);
+
+        List<Long> effectiveGroupIds = request.groupIds();
+        if (effectiveGroupIds == null && positionChanged) {
+            Long defaultGroupId = defaultGroupId(newPosition);
+            if (defaultGroupId != null) {
+                List<Long> currentGroupIds = userGroupRepository.findByUserId(id).stream()
+                        .map(SysUserGroup::getGroupId)
+                        .toList();
+                if (!currentGroupIds.contains(defaultGroupId)) {
+                    effectiveGroupIds = new ArrayList<>(currentGroupIds);
+                    effectiveGroupIds.add(defaultGroupId);
+                }
+            }
+        }
+        if (effectiveGroupIds != null) {
+            replaceGroups(id, effectiveGroupIds);
+            userRepository.bumpPrivVersion(id);
+            permissionService.evict(id);
+        }
         auditService.record("USER_UPDATE", "USER", id, before, toDto(user));
         return toDto(user);
     }
@@ -176,6 +213,15 @@ public class UserAdminService {
                 .map(group -> GroupDto.of(group, 0))
                 .toList();
         return UserDto.of(user, groups);
+    }
+
+    private Long defaultGroupId(String position) {
+        if (position == null) {
+            return null;
+        }
+        return positionRepository.findByNameAndStatus(position, "ACTIVE")
+                .map(SysPosition::getGroupId)
+                .orElse(null);
     }
 
     private SysUser requireUser(Long id) {

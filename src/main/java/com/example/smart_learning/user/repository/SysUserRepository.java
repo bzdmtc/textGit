@@ -42,4 +42,8 @@ public interface SysUserRepository extends JpaRepository<SysUser, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update SysUser u set u.privVersion = u.privVersion + 1 where u.id = :userId")
     int bumpPrivVersion(@Param("userId") Long userId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update SysUser u set u.position = :newName where u.position = :oldName")
+    int renamePosition(@Param("oldName") String oldName, @Param("newName") String newName);
 }

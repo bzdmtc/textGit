@@ -7,7 +7,7 @@
 - 前后端分离工程骨架（Spring Boot 4.2 + Vue 3 + TypeScript）
 - SQL Server 主从双数据源读写分离（`smart_learning` / `smart_learning_read`）
 - 禅道式权限分组：用户、分组、权限点、分组授权、用户分组、审计日志全部落库；分组列表按「ID/分组名称/分组描述/用户列表/操作」展示，可查看组内用户
-- 用户职位（`position`）：与权限分组分离的组织岗位信息，仅展示/检索，不参与鉴权
+- 用户职位（`position`）：职位字典绑定默认权限分组；新增/编辑用户选择职位后自动带出对应分组，可手动调整，最终权限仍由分组并集决定
 - 账号密码 + 手机号验证码 + 邮箱验证码三种登录
 - JWT access token + 数据库持久化 refresh token（轮换、吊销）
 - 权限驱动菜单、路由守卫、按钮权限指令
@@ -239,6 +239,7 @@ node frontend/scripts/practice-ui-smoke.cjs # 浏览器 UI 全链路（需前后
 | GET | `/api/v1/admin/groups` | 权限分组列表 |
 | PUT | `/api/v1/admin/groups/{id}/privs` | 整组覆盖权限 |
 | GET | `/api/v1/admin/users` | 用户分页/搜索 |
+| GET/POST/PUT | `/api/v1/admin/positions...` | 职位字典与默认分组（选择职位自动带出分组） |
 | PUT | `/api/v1/admin/users/{id}/groups` | 分配用户分组 |
 | GET | `/api/v1/admin/users/{id}/permissions` | 有效权限预览 |
 | GET | `/api/v1/admin/audit-logs` | 审计日志 |

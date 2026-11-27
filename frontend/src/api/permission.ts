@@ -1,5 +1,11 @@
 import http from './http'
-import type { ApiResponse, Group, GroupUser, Priv } from '@/types'
+import type { ApiResponse, Group, GroupUser, Position, Priv } from '@/types'
+
+export interface PositionPayload {
+  name: string
+  groupId: number
+  sort?: number
+}
 
 export interface GroupPayload {
   code: string
@@ -21,6 +27,18 @@ export const permissionApi = {
   },
   groupUsers(groupId: number) {
     return http.get<ApiResponse<GroupUser[]>>(`/admin/groups/${groupId}/users`)
+  },
+  positions() {
+    return http.get<ApiResponse<Position[]>>('/admin/positions')
+  },
+  createPosition(payload: PositionPayload) {
+    return http.post<ApiResponse<Position>>('/admin/positions', payload)
+  },
+  updatePosition(id: number, payload: PositionPayload) {
+    return http.put<ApiResponse<Position>>(`/admin/positions/${id}`, payload)
+  },
+  setPositionStatus(id: number, status: string) {
+    return http.put<ApiResponse<Position>>(`/admin/positions/${id}/status`, { status })
   },
   createGroup(payload: GroupPayload) {
     return http.post<ApiResponse<Group>>('/admin/groups', payload)

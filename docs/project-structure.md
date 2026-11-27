@@ -127,12 +127,13 @@ frontend/
 | `permission/service/PrivilegeSyncService` | 权限 | 启动同步权限字典 | `sys_priv` |
 | `permission/service/PermissionService` | 权限 | 多分组并集、数据范围、快照缓存 | `sys_group_priv`、`sys_user_group` |
 | `permission/service/GroupService` | 权限 | 分组 CRUD、描述、组内用户列表、整组覆盖授权 | `/api/v1/admin/groups*`、`sys_group_priv` |
-| `permission/service/UserAdminService` | 权限 | 用户管理、分组分配、权限预览 | `/api/v1/admin/users*`、`sys_user_group` |
+| `permission/service/UserAdminService` | 权限 | 用户管理、分组分配、权限预览；职位默认分组自动带出 | `/api/v1/admin/users*`、`sys_user_group`、`sys_position` |
+| `permission/service/PositionService` | 权限 | 职位字典 CRUD、职位→默认分组映射、改名同步用户职位 | `/api/v1/admin/positions*`、`sys_position` |
 | `permission/service/DataScopeService` | 权限 | ALL/OWN/SELF 数据范围与资源归属判断 | 后续课程/题目/文章模块 |
 | `permission/service/AuditService` | 权限 | 权限变更审计 | `sys_audit_log`、`/api/v1/admin/audit-logs` |
 | `security/RequiresPriv` + `PrivilegeInterceptor` | 权限 | 接口级 VIEW/ACTION 校验 | 所有 `/api/v1/admin/**` |
 | `views/admin/GroupListView.vue` | 权限 | 权限分组管理页（ID/名称/描述/用户列表/操作） | `/admin/groups`、`/api/v1/admin/groups/{id}/users` |
-| `views/admin/UserListView.vue` | 权限 | 用户与分组管理页 | `/admin/users` |
+| `views/admin/UserListView.vue` | 权限 | 用户与分组管理页；职位下拉联动默认分组、职位管理弹窗 | `/admin/users`、`/api/v1/admin/positions` |
 | `views/admin/AuditLogView.vue` | 权限 | 审计日志页 | `/admin/logs` |
 | `views/LoginView.vue` | 认证 | 三种登录入口 | `/login` |
 | `layouts/AdminLayout.vue` | 系统底座 | 后端菜单驱动的后台布局 | `/me` 返回的 `menus` |
@@ -485,6 +486,8 @@ frontend/src/
 | `V15__practice_seed.sql` | 题库 | 9 个题库/试卷权限点、ADMIN/TEACHER 授权、19 道演示题、6 套试卷 |
 | `V16__group_description.sql` | 权限 | `sys_group.description`（分组描述） |
 | `V17__group_description_seed.sql` | 权限 | 内置分组描述（ADMIN/TEACHER/STUDENT/LIMITED） |
+| `V18__position_schema.sql` | 权限 | `sys_position`（职位字典、默认分组、状态、排序） |
+| `V19__position_seed.sql` | 权限 | 5 个演示职位映射到 ADMIN/TEACHER/STUDENT/LIMITED |
 
 ## 六、后续模块规划
 

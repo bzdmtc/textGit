@@ -74,6 +74,16 @@ export interface GroupUser {
   lastLoginAt?: string | null
 }
 
+export interface Position {
+  id: number
+  name: string
+  groupId: number
+  groupCode?: string | null
+  groupName?: string | null
+  status: string
+  sort: number
+}
+
 export interface Priv {
   id: number
   module: string

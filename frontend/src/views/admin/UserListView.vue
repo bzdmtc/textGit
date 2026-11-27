@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { permissionApi } from '@/api/permission'
+import { permissionApi, type PositionPayload } from '@/api/permission'
 import { userApi, type UserCreatePayload, type UserUpdatePayload } from '@/api/user'
-import type { Group, User, UserPermissionView } from '@/types'
+import type { Group, Position, User, UserPermissionView } from '@/types'
 
 const users = ref<User[]>([])
 const groups = ref<Group[]>([])
+const positions = ref<Position[]>([])
 const keyword = ref('')
 const page = ref(1)
 const size = ref(10)
@@ -34,6 +35,18 @@ const editForm = reactive<UserUpdatePayload>({
   phone: '',
   email: '',
   avatar: '',
+  groupIds: [],
+})
+
+const positionVisible = ref(false)
+const positionLoading = ref(false)
+const positionFormVisible = ref(false)
+const positionEditingId = ref<number | null>(null)
+const positionSaving = ref(false)
+const positionForm = reactive<{ name: string; groupId: number | undefined; sort: number }>({
+  name: '',
+  groupId: undefined,
+  sort: 0,
 })
 
 const groupVisible = ref(false)
@@ -58,6 +71,97 @@ async function load() {
 async function loadGroups() {
   const response = await permissionApi.groups()
   groups.value = response.data.data.filter((group) => group.status === 'ACTIVE')
+}
+
+async function loadPositions() {
+  positionLoading.value = true
+  try {
+    const response = await permissionApi.positions()
+    positions.value = response.data.data
+  } finally {
+    positionLoading.value = false
+  }
+}
+
+function addPositionGroup(name: string, current: number[] | undefined): number[] {
+  const position = positions.value.find((item) => item.name === name)
+  if (!position) {
+    return current ?? []
+  }
+  const set = new Set(current ?? [])
+  set.add(position.groupId)
+  return [...set]
+}
+
+function onCreatePositionChange(name: string) {
+  createForm.groupIds = addPositionGroup(name, createForm.groupIds)
+}
+
+function onEditPositionChange(name: string) {
+  editForm.groupIds = addPositionGroup(name, editForm.groupIds)
+}
+
+function openPositions() {
+  positionVisible.value = true
+  void loadPositions()
+}
+
+function openPositionCreate() {
+  positionEditingId.value = null
+  positionForm.name = ''
+  positionForm.groupId = groups.value[0]?.id
+  positionForm.sort = (positions.value.length + 1) * 10
+  positionFormVisible.value = true
+}
+
+function openPositionEdit(position: Position) {
+  positionEditingId.value = position.id
+  positionForm.name = position.name
+  positionForm.groupId = position.groupId
+  positionForm.sort = position.sort
+  positionFormVisible.value = true
+}
+
+async function savePosition() {
+  if (!positionForm.name.trim()) {
+    ElMessage.warning('请填写职位名称')
+    return
+  }
+  if (!positionForm.groupId) {
+    ElMessage.warning('请选择默认权限分组')
+    return
+  }
+  const payload: PositionPayload = {
+    name: positionForm.name.trim(),
+    groupId: positionForm.groupId,
+    sort: positionForm.sort,
+  }
+  positionSaving.value = true
+  try {
+    if (positionEditingId.value) {
+      await permissionApi.updatePosition(positionEditingId.value, payload)
+      ElMessage.success('职位已更新，现有用户的职位名称已同步')
+    } else {
+      await permissionApi.createPosition(payload)
+      ElMessage.success('职位已创建')
+    }
+    positionFormVisible.value = false
+    await Promise.all([loadPositions(), load()])
+  } finally {
+    positionSaving.value = false
+  }
+}
+
+async function togglePositionStatus(position: Position) {
+  const next = position.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'
+  await ElMessageBox.confirm(
+    `确定${next === 'ACTIVE' ? '启用' : '停用'}职位「${position.name}」吗？停用后新用户不能再选择该职位。`,
+    '职位状态',
+    { type: 'warning' },
+  )
+  await permissionApi.setPositionStatus(position.id, next)
+  ElMessage.success('职位状态已更新')
+  await loadPositions()
 }
 
 function search() {
@@ -99,6 +203,7 @@ function openEdit(user: User) {
     phone: user.phone || '',
     email: user.email || '',
     avatar: user.avatar || '',
+    groupIds: user.groups.map((group) => group.id),
   })
   editVisible.value = true
 }
@@ -149,7 +254,7 @@ async function openPermissions(user: User) {
 }
 
 onMounted(async () => {
-  await Promise.all([load(), loadGroups()])
+  await Promise.all([load(), loadGroups(), loadPositions()])
 })
 </script>
 
@@ -158,11 +263,16 @@ onMounted(async () => {
     <div class="page-header">
       <div>
         <div class="page-title">用户管理</div>
-        <div class="muted">职位是组织岗位信息；权限由多个分组并集决定，两者互不影响</div>
+        <div class="muted">选择职位会自动带出对应权限分组，可再调整；最终权限仍由分组并集决定</div>
       </div>
-      <el-button v-priv="{ module: 'user', method: 'create' }" type="primary" @click="openCreate">
-        新增用户
-      </el-button>
+      <div style="display: flex; gap: 10px">
+        <el-button v-priv="{ module: 'user', method: 'edit' }" @click="openPositions">
+          职位管理
+        </el-button>
+        <el-button v-priv="{ module: 'user', method: 'create' }" type="primary" @click="openCreate">
+          新增用户
+        </el-button>
+      </div>
     </div>
 
     <div class="page-card">
@@ -254,7 +364,21 @@ onMounted(async () => {
           <el-input v-model="createForm.nickname" />
         </el-form-item>
         <el-form-item label="职位">
-          <el-input v-model="createForm.position" placeholder="例如：考研政治讲师、学员" />
+          <el-select
+            v-model="createForm.position"
+            clearable
+            placeholder="选择职位（自动带出权限分组）"
+            style="width: 100%"
+            @change="onCreatePositionChange"
+          >
+            <el-option
+              v-for="position in positions"
+              :key="position.id"
+              :label="`${position.name}（${position.groupCode || position.groupName || '未映射'}）`"
+              :value="position.name"
+              :disabled="position.status !== 'ACTIVE'"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="手机">
           <el-input v-model="createForm.phone" />
@@ -266,6 +390,9 @@ onMounted(async () => {
           <el-select v-model="createForm.groupIds" multiple style="width: 100%">
             <el-option v-for="group in groups" :key="group.id" :label="`${group.name} (${group.code})`" :value="group.id" />
           </el-select>
+          <div class="muted" style="font-size: 12px; margin-top: 4px">
+            选择职位后会自动勾选对应分组，可手动增删；最终权限以实际分组并集为准。
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -283,7 +410,29 @@ onMounted(async () => {
           <el-input v-model="editForm.nickname" />
         </el-form-item>
         <el-form-item label="职位">
-          <el-input v-model="editForm.position" placeholder="例如：考研政治讲师、学员" />
+          <el-select
+            v-model="editForm.position"
+            clearable
+            placeholder="选择职位（自动带出权限分组）"
+            style="width: 100%"
+            @change="onEditPositionChange"
+          >
+            <el-option
+              v-for="position in positions"
+              :key="position.id"
+              :label="`${position.name}（${position.groupCode || position.groupName || '未映射'}）`"
+              :value="position.name"
+              :disabled="position.status !== 'ACTIVE'"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="权限分组">
+          <el-select v-model="editForm.groupIds" multiple style="width: 100%" placeholder="请选择分组">
+            <el-option v-for="group in groups" :key="group.id" :label="`${group.name} (${group.code})`" :value="group.id" />
+          </el-select>
+          <div class="muted" style="font-size: 12px; margin-top: 4px">
+            选择职位会自动加入对应分组，可手动调整；最终权限以实际分组并集为准。
+          </div>
         </el-form-item>
         <el-form-item label="手机">
           <el-input v-model="editForm.phone" />
@@ -298,6 +447,100 @@ onMounted(async () => {
       <template #footer>
         <el-button @click="editVisible = false">取消</el-button>
         <el-button type="primary" @click="saveEdit">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="positionVisible" title="职位管理" width="760px">
+      <div class="muted" style="margin-bottom: 12px">
+        职位是用户属性；每个职位绑定一个默认权限分组。选择职位时会自动带出该分组，最终权限仍以用户实际分组为准。
+      </div>
+      <div class="toolbar">
+        <el-button
+          v-priv="{ module: 'user', method: 'edit' }"
+          type="primary"
+          @click="openPositionCreate"
+        >
+          新增职位
+        </el-button>
+      </div>
+      <el-table v-loading="positionLoading" :data="positions" stripe>
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="name" label="职位名称" min-width="160" />
+        <el-table-column label="默认权限分组" min-width="220">
+          <template #default="{ row }">
+            <span v-if="row.groupName">
+              {{ row.groupName }}<span class="muted">（{{ row.groupCode }}）</span>
+            </span>
+            <span v-else class="muted">未映射</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="sort" label="排序" width="80" />
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'" size="small">
+              {{ row.status === 'ACTIVE' ? '启用' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button
+              v-priv="{ module: 'user', method: 'edit' }"
+              link
+              type="primary"
+              @click="openPositionEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-priv="{ module: 'user', method: 'edit' }"
+              link
+              :type="row.status === 'ACTIVE' ? 'danger' : 'success'"
+              @click="togglePositionStatus(row)"
+            >
+              {{ row.status === 'ACTIVE' ? '停用' : '启用' }}
+            </el-button>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <el-empty description="暂无职位" />
+        </template>
+      </el-table>
+      <template #footer>
+        <el-button @click="positionVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="positionFormVisible"
+      :title="positionEditingId ? '编辑职位' : '新增职位'"
+      width="480px"
+      append-to-body
+    >
+      <el-form label-width="100px">
+        <el-form-item label="职位名称" required>
+          <el-input v-model="positionForm.name" placeholder="如：考研英语讲师" />
+        </el-form-item>
+        <el-form-item label="默认分组" required>
+          <el-select v-model="positionForm.groupId" style="width: 100%" placeholder="选择权限分组">
+            <el-option
+              v-for="group in groups"
+              :key="group.id"
+              :label="`${group.name}（${group.code}）`"
+              :value="group.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="positionForm.sort" :min="0" :max="9999" />
+        </el-form-item>
+      </el-form>
+      <div class="muted" style="font-size: 12px; padding-left: 100px">
+        修改职位名称会同步更新现有用户的职位显示，但不会自动改动他们的分组。
+      </div>
+      <template #footer>
+        <el-button @click="positionFormVisible = false">取消</el-button>
+        <el-button type="primary" :loading="positionSaving" @click="savePosition">保存</el-button>
       </template>
     </el-dialog>
 
