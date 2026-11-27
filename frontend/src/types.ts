@@ -54,7 +54,7 @@ export interface Group {
   id: number
   code: string
   name: string
-  role?: string | null
+  description?: string | null
   dataScope: string
   limited: boolean
   scopeType: string
@@ -62,6 +62,16 @@ export interface Group {
   status: string
   sort: number
   userCount: number
+}
+
+export interface GroupUser {
+  id: number
+  account: string
+  realname?: string | null
+  nickname?: string | null
+  position?: string | null
+  status: string
+  lastLoginAt?: string | null
 }
 
 export interface Priv {

@@ -5,6 +5,7 @@ import com.example.smart_learning.common.error.BusinessException;
 import com.example.smart_learning.common.error.ErrorCode;
 import com.example.smart_learning.permission.dto.GroupDto;
 import com.example.smart_learning.permission.dto.GroupRequest;
+import com.example.smart_learning.permission.dto.GroupUserDto;
 import com.example.smart_learning.permission.entity.SysGroup;
 import com.example.smart_learning.permission.entity.SysGroupPriv;
 import com.example.smart_learning.permission.entity.SysPriv;
@@ -12,10 +13,12 @@ import com.example.smart_learning.permission.repository.SysGroupPrivRepository;
 import com.example.smart_learning.permission.repository.SysGroupRepository;
 import com.example.smart_learning.permission.repository.SysPrivRepository;
 import com.example.smart_learning.permission.repository.SysUserGroupRepository;
+import com.example.smart_learning.user.entity.SysUser;
 import com.example.smart_learning.user.repository.SysUserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,6 +62,22 @@ public class GroupService {
     public List<Long> privIds(Long groupId) {
         requireGroup(groupId);
         return groupPrivRepository.findPrivIdsByGroupId(groupId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupUserDto> users(Long groupId) {
+        requireGroup(groupId);
+        List<Long> userIds = userGroupRepository.findByGroupId(groupId).stream()
+                .map(relation -> relation.getUserId())
+                .distinct()
+                .toList();
+        if (userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .sorted(Comparator.comparing(SysUser::getId))
+                .map(GroupUserDto::of)
+                .toList();
     }
 
     @Transactional
@@ -135,7 +154,9 @@ public class GroupService {
     private void apply(SysGroup group, GroupRequest request, String code) {
         group.setCode(code);
         group.setName(request.name().trim());
-        group.setRole(request.role() == null || request.role().isBlank() ? code : request.role().trim());
+        group.setDescription(blankToNull(request.description()));
+        // 兼容旧字段：角色标签不再对外展示/编辑，职位以 sys_user.position 为准
+        group.setRole(code);
         group.setDataScope(request.dataScope() == null ? "SELF" : request.dataScope());
         group.setLimited(Boolean.TRUE.equals(request.limited()));
         group.setScopeType(request.scopeType() == null || request.scopeType().isBlank()
@@ -153,5 +174,9 @@ public class GroupService {
 
     private GroupDto toDto(SysGroup group) {
         return GroupDto.of(group, userGroupRepository.countByGroupId(group.getId()));
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

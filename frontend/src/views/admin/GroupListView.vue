@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { permissionApi, type GroupPayload } from '@/api/permission'
-import type { Group, Priv } from '@/types'
+import { formatDateTime } from '@/utils/format'
+import type { Group, GroupUser, Priv } from '@/types'
+
+const router = useRouter()
 
 const groups = ref<Group[]>([])
 const privs = ref<Priv[]>([])
@@ -13,7 +17,7 @@ const editingId = ref<number | null>(null)
 const form = reactive<GroupPayload>({
   code: '',
   name: '',
-  role: '',
+  description: '',
   dataScope: 'SELF',
   limited: false,
   scopeType: 'GLOBAL',
@@ -25,6 +29,11 @@ const privDialogVisible = ref(false)
 const privGroup = ref<Group | null>(null)
 const checkedPrivIds = ref<number[]>([])
 const privSaving = ref(false)
+
+const usersDialogVisible = ref(false)
+const usersGroup = ref<Group | null>(null)
+const groupUsers = ref<GroupUser[]>([])
+const usersLoading = ref(false)
 
 const moduleLabels: Record<string, string> = {
   admin: '后台',
@@ -67,7 +76,7 @@ function openCreate() {
   Object.assign(form, {
     code: '',
     name: '',
-    role: '',
+    description: '',
     dataScope: 'SELF',
     limited: false,
     scopeType: 'GLOBAL',
@@ -82,7 +91,7 @@ function openEdit(group: Group) {
   Object.assign(form, {
     code: group.code,
     name: group.name,
-    role: group.role || '',
+    description: group.description || '',
     dataScope: group.dataScope,
     limited: group.limited,
     scopeType: group.scopeType,
@@ -90,6 +99,18 @@ function openEdit(group: Group) {
     sort: group.sort,
   })
   dialogVisible.value = true
+}
+
+async function openUsers(group: Group) {
+  usersGroup.value = group
+  usersDialogVisible.value = true
+  usersLoading.value = true
+  try {
+    const response = await permissionApi.groupUsers(group.id)
+    groupUsers.value = response.data.data
+  } finally {
+    usersLoading.value = false
+  }
 }
 
 async function saveGroup() {
@@ -152,30 +173,27 @@ onMounted(load)
 
     <div class="page-card">
       <el-table v-loading="loading" :data="groups" stripe>
-        <el-table-column prop="code" label="编码" width="120" />
-        <el-table-column prop="name" label="名称" min-width="140" />
-        <el-table-column prop="role" label="角色标签" width="110" />
-        <el-table-column label="数据范围" width="110">
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column label="分组名称" min-width="180">
           <template #default="{ row }">
-            <el-tag :type="row.dataScope === 'ALL' ? 'danger' : row.dataScope === 'OWN' ? 'warning' : 'info'">
-              {{ row.dataScope }}
-            </el-tag>
+            <div class="cell-strong">
+              {{ row.name }}
+              <el-tag v-if="row.status !== 'ACTIVE'" size="small" type="info" style="margin-left: 8px">
+                已停用
+              </el-tag>
+            </div>
+            <div class="muted">{{ row.code }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="受限" width="80">
+        <el-table-column label="分组描述" min-width="300" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.description || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="用户列表" width="130">
           <template #default="{ row }">
-            <el-tag v-if="row.limited" type="danger" effect="plain">是</el-tag>
-            <span v-else class="muted">否</span>
+            <el-button link type="primary" @click="openUsers(row)">查看（{{ row.userCount }}）</el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="userCount" label="用户数" width="90" />
-        <el-table-column prop="sort" label="排序" width="80" />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">{{ row.status }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column label="操作" width="230" fixed="right">
           <template #default="{ row }">
             <el-button v-priv="{ module: 'group', method: 'edit' }" link type="primary" @click="openEdit(row)">
               编辑
@@ -197,17 +215,25 @@ onMounted(load)
       </el-table>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑分组' : '新增分组'" width="520px">
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑分组' : '新增分组'" width="560px">
       <el-form label-width="90px">
         <el-form-item label="分组编码">
-          <el-input v-model="form.code" placeholder="如 COURSE_OPERATOR" />
+          <el-input v-model="form.code" placeholder="如 COURSE_OPERATOR（唯一标识）" />
         </el-form-item>
         <el-form-item label="分组名称">
           <el-input v-model="form.name" placeholder="如 课程运营" />
         </el-form-item>
-        <el-form-item label="角色标签">
-          <el-input v-model="form.role" placeholder="仅展示，不参与鉴权" />
+        <el-form-item label="分组描述">
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="3"
+            maxlength="500"
+            show-word-limit
+            placeholder="说明该分组的职责与适用人员，如：负责课程内容与题库运营"
+          />
         </el-form-item>
+        <div class="form-divider">高级设置</div>
         <el-form-item label="数据范围">
           <el-select v-model="form.dataScope" style="width: 100%">
             <el-option label="ALL - 全部数据" value="ALL" />
@@ -225,6 +251,49 @@ onMounted(load)
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveGroup">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="usersDialogVisible"
+      :title="`用户列表 · ${usersGroup?.name || ''}`"
+      width="720px"
+    >
+      <el-table v-loading="usersLoading" :data="groupUsers" stripe>
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column label="账号 / 姓名" width="190">
+          <template #default="{ row }">
+            <div class="cell-strong">{{ row.account }}</div>
+            <div class="muted">{{ row.realname || row.nickname || '-' }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="职位" width="160">
+          <template #default="{ row }">{{ row.position || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'" size="small">
+              {{ row.status === 'ACTIVE' ? '正常' : '禁用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="最后登录" min-width="170">
+          <template #default="{ row }">{{ formatDateTime(row.lastLoginAt) }}</template>
+        </el-table-column>
+        <template #empty>
+          <el-empty description="该分组暂无用户" />
+        </template>
+      </el-table>
+      <template #footer>
+        <el-button @click="usersDialogVisible = false">关闭</el-button>
+        <el-button
+          v-priv="{ module: 'user', method: 'browse' }"
+          type="primary"
+          plain
+          @click="router.push('/admin/users')"
+        >
+          用户管理
+        </el-button>
       </template>
     </el-dialog>
 
@@ -260,3 +329,18 @@ onMounted(load)
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.cell-strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.form-divider {
+  margin: 4px 0 16px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+  color: #9ca3af;
+  font-size: 12px;
+}
+</style>

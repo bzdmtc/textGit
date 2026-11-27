@@ -1,10 +1,10 @@
 import http from './http'
-import type { ApiResponse, Group, Priv } from '@/types'
+import type { ApiResponse, Group, GroupUser, Priv } from '@/types'
 
 export interface GroupPayload {
   code: string
   name: string
-  role?: string
+  description?: string | null
   dataScope: string
   limited: boolean
   scopeType?: string
@@ -18,6 +18,9 @@ export const permissionApi = {
   },
   groupPrivIds(groupId: number) {
     return http.get<ApiResponse<number[]>>(`/admin/groups/${groupId}/privs`)
+  },
+  groupUsers(groupId: number) {
+    return http.get<ApiResponse<GroupUser[]>>(`/admin/groups/${groupId}/users`)
   },
   createGroup(payload: GroupPayload) {
     return http.post<ApiResponse<Group>>('/admin/groups', payload)

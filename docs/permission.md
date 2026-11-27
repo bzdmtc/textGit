@@ -2,7 +2,7 @@
 
 ## 1. 模型
 
-授权主体是**权限分组**，不是角色。用户可属于多个分组，有效权限取并集；`sys_group.role` 只是展示标签，鉴权只查 `sys_group_priv`。
+授权主体是**权限分组**，不是角色或职位。用户可属于多个分组，有效权限取并集，鉴权只查 `sys_group_priv`。`sys_user.position` 是用户的组织岗位信息（仅展示/检索）；`sys_group.role` 为兼容旧数据保留的隐藏字段，后台不再展示或编辑。
 
 ```text
 sys_user ──< sys_user_group >── sys_group ──< sys_group_priv >── sys_priv
@@ -11,7 +11,7 @@ sys_user ──< sys_user_group >── sys_group ──< sys_group_priv >──
 | 表 | 说明 |
 |---|---|
 | `sys_user` | 用户，含 `priv_version`（权限版本）与 `position`（职位，仅组织展示） |
-| `sys_group` | 权限分组，含 `data_scope`（ALL/OWN/SELF）、`limited` |
+| `sys_group` | 权限分组，含 `name`、`description`（分组描述）、`data_scope`（ALL/OWN/SELF）、`limited` |
 | `sys_user_group` | 用户—分组多对多，`UNIQUE(user_id, group_id)` |
 | `sys_priv` | 权限字典，`module + method`，`type` 为 VIEW/ACTION |
 | `sys_group_priv` | 分组授权，`UNIQUE(group_id, priv_id)`，FK 到 `sys_priv` |
@@ -19,6 +19,15 @@ sys_user ──< sys_user_group >── sys_group ──< sys_group_priv >──
 | `sys_audit_log` | 权限变更审计 |
 
 **职位与分组的区别**：`sys_user.position` 是组织岗位信息（如「考研政治讲师」「学员」），只用于展示与检索，不参与鉴权；真正的权限仍只由 `sys_user_group → sys_group_priv` 的并集决定。后续如果需要受控职位字典，可新增 `sys_position` 表并把 `position` 平滑迁移为 `position_id`，不影响现有分组鉴权。
+
+### 分组管理页
+
+后台 `/admin/groups` 的列表对齐禅道权限分组：**ID、分组名称、分组描述、用户列表、操作**。
+
+- 分组名称下显示唯一编码（内部标识，创建时可编辑）。
+- 「用户列表」显示人数，点击弹窗查看组内用户（账号/姓名、职位、状态、最后登录）；接口 `GET /api/v1/admin/groups/{id}/users`。
+- 数据范围、受限、排序等高级项收进「编辑分组」弹窗；分配权限仍在操作列的「分配权限」。
+- 新增 `V16__group_description.sql` / `V17__group_description_seed.sql`，为内置分组补充描述。
 
 ## 2. 权限点
 
@@ -96,8 +105,9 @@ V4 迁移新增 23 个权限点（总数 38）：
 - 模块 3 交易（V7）：`order/browse`、`refund/browse|approve`、`coupon/browse|create|edit|delete`
 - 模块 4 秒杀（V11）：`seckill/browse`（VIEW，菜单 `/admin/seckill`）、`seckill/create`、`seckill/edit`（编辑/上下线/对账）、`seckill/delete`
 - 模块 5 学习（V13）：`review/browse`（VIEW，菜单 `/admin/reviews`）、`review/approve`（通过/驳回评价）
+- 模块 6 题库（V15）：`question/browse|create|edit|delete`（菜单 `/admin/questions`）、`paper/browse|create|edit|delete|publish`（菜单 `/admin/papers`）
 
-分配：`ADMIN` 自动获得全部新权限；`TEACHER`/`STUDENT` 不授予秒杀后台权限与评价审核权限。前台秒杀浏览公开，抢购仅需登录；学习与评价提交需已购课程。
+分配：`ADMIN` 自动获得全部新权限；`TEACHER` 额外获得题库/试卷维护权限（数据范围 `OWN`，只能操作自有题目与试卷）；`STUDENT` 不授予秒杀、评价审核、题库后台权限。前台秒杀浏览公开，抢购仅需登录；学习与评价提交需已购课程；练习与考试仅需登录。
 
 ## 9. 验收用例
 
@@ -108,3 +118,4 @@ V4 迁移新增 23 个权限点（总数 38）：
 5. 无 VIEW 权限时前端菜单不显示；无 ACTION 权限时按钮隐藏且接口 403。
 6. 提交未注册的权限点 ID 被拒绝。
 7. 每次授权变更在 `sys_audit_log` 有前后差异记录。
+8. 分组列表按「ID / 分组名称 / 分组描述 / 用户列表 / 操作」展示；点击用户列表可查看组内用户；编辑弹窗不含角色标签，职位仍在用户管理中维护。

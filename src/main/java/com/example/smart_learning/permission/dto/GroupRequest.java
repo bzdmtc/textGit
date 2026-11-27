@@ -12,8 +12,8 @@ public record GroupRequest(
         @NotBlank(message = "分组名称不能为空")
         @Size(max = 128, message = "分组名称过长")
         String name,
-        @Size(max = 32, message = "角色标签过长")
-        String role,
+        @Size(max = 500, message = "分组描述过长")
+        String description,
         @Pattern(regexp = "ALL|OWN|SELF", message = "数据范围只能是 ALL/OWN/SELF")
         String dataScope,
         Boolean limited,

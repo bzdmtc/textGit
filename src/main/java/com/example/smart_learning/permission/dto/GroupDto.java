@@ -6,7 +6,7 @@ public record GroupDto(
         Long id,
         String code,
         String name,
-        String role,
+        String description,
         String dataScope,
         boolean limited,
         String scopeType,
@@ -17,7 +17,7 @@ public record GroupDto(
 ) {
 
     public static GroupDto of(SysGroup group, long userCount) {
-        return new GroupDto(group.getId(), group.getCode(), group.getName(), group.getRole(),
+        return new GroupDto(group.getId(), group.getCode(), group.getName(), group.getDescription(),
                 group.getDataScope(), Boolean.TRUE.equals(group.getLimited()), group.getScopeType(),
                 group.getScopeId(), group.getStatus(), group.getSort(), userCount);
     }

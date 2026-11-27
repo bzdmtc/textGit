@@ -28,6 +28,10 @@ public class SysGroup extends BaseEntity {
     @Column(nullable = false, length = 128)
     private String name;
 
+    @Column(length = 500)
+    private String description;
+
+    /** 兼容旧数据的分组预设标签，不再对外展示；职位见 sys_user.position。 */
     @Column(length = 32)
     private String role;
 

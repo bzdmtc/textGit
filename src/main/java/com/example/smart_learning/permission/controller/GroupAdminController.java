@@ -4,6 +4,7 @@ import com.example.smart_learning.common.api.ApiResponse;
 import com.example.smart_learning.permission.dto.GroupDto;
 import com.example.smart_learning.permission.dto.GroupPrivRequest;
 import com.example.smart_learning.permission.dto.GroupRequest;
+import com.example.smart_learning.permission.dto.GroupUserDto;
 import com.example.smart_learning.permission.service.GroupService;
 import com.example.smart_learning.security.RequiresPriv;
 import jakarta.validation.Valid;
@@ -38,6 +39,12 @@ public class GroupAdminController {
     @RequiresPriv(module = "group", method = "browse")
     public ApiResponse<List<Long>> privIds(@PathVariable Long id) {
         return ApiResponse.success(groupService.privIds(id));
+    }
+
+    @GetMapping("/{id}/users")
+    @RequiresPriv(module = "group", method = "browse")
+    public ApiResponse<List<GroupUserDto>> users(@PathVariable Long id) {
+        return ApiResponse.success(groupService.users(id));
     }
 
     @PostMapping

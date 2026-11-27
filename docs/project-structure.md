@@ -126,12 +126,12 @@ frontend/
 | `auth/service/VerificationCodeService` | 认证 | Redis 验证码、限流、错误次数 | `auth:code:*`、`auth:send:*` |
 | `permission/service/PrivilegeSyncService` | 权限 | 启动同步权限字典 | `sys_priv` |
 | `permission/service/PermissionService` | 权限 | 多分组并集、数据范围、快照缓存 | `sys_group_priv`、`sys_user_group` |
-| `permission/service/GroupService` | 权限 | 分组 CRUD、整组覆盖授权 | `/api/v1/admin/groups*`、`sys_group_priv` |
+| `permission/service/GroupService` | 权限 | 分组 CRUD、描述、组内用户列表、整组覆盖授权 | `/api/v1/admin/groups*`、`sys_group_priv` |
 | `permission/service/UserAdminService` | 权限 | 用户管理、分组分配、权限预览 | `/api/v1/admin/users*`、`sys_user_group` |
 | `permission/service/DataScopeService` | 权限 | ALL/OWN/SELF 数据范围与资源归属判断 | 后续课程/题目/文章模块 |
 | `permission/service/AuditService` | 权限 | 权限变更审计 | `sys_audit_log`、`/api/v1/admin/audit-logs` |
 | `security/RequiresPriv` + `PrivilegeInterceptor` | 权限 | 接口级 VIEW/ACTION 校验 | 所有 `/api/v1/admin/**` |
-| `views/admin/GroupListView.vue` | 权限 | 权限分组管理页 | `/admin/groups` |
+| `views/admin/GroupListView.vue` | 权限 | 权限分组管理页（ID/名称/描述/用户列表/操作） | `/admin/groups`、`/api/v1/admin/groups/{id}/users` |
 | `views/admin/UserListView.vue` | 权限 | 用户与分组管理页 | `/admin/users` |
 | `views/admin/AuditLogView.vue` | 权限 | 审计日志页 | `/admin/logs` |
 | `views/LoginView.vue` | 认证 | 三种登录入口 | `/login` |
@@ -483,6 +483,8 @@ frontend/src/
 | `V13__learn_priv_seed.sql` | 学习 | 2 个评价审核权限点 + ADMIN 授权 |
 | `V14__practice_schema.sql` | 题库 | `question`、`question_option`、`paper`、`paper_question`、`exam_record`、`exam_answer`、`wrong_question` 及约束/索引 |
 | `V15__practice_seed.sql` | 题库 | 9 个题库/试卷权限点、ADMIN/TEACHER 授权、19 道演示题、6 套试卷 |
+| `V16__group_description.sql` | 权限 | `sys_group.description`（分组描述） |
+| `V17__group_description_seed.sql` | 权限 | 内置分组描述（ADMIN/TEACHER/STUDENT/LIMITED） |
 
 ## 六、后续模块规划
 
