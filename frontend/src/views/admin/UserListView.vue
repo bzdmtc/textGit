@@ -37,6 +37,8 @@ const editForm = reactive<UserUpdatePayload>({
   avatar: '',
   groupIds: [],
 })
+const lastCreatePosition = ref('')
+const lastEditPosition = ref('')
 
 const positionVisible = ref(false)
 const positionLoading = ref(false)
@@ -83,22 +85,27 @@ async function loadPositions() {
   }
 }
 
-function addPositionGroup(name: string, current: number[] | undefined): number[] {
-  const position = positions.value.find((item) => item.name === name)
-  if (!position) {
-    return current ?? []
-  }
+function switchPositionGroup(oldName: string, newName: string, current: number[] | undefined): number[] {
   const set = new Set(current ?? [])
-  set.add(position.groupId)
+  const oldPosition = positions.value.find((item) => item.name === oldName)
+  if (oldPosition) {
+    set.delete(oldPosition.groupId)
+  }
+  const newPosition = positions.value.find((item) => item.name === newName)
+  if (newPosition) {
+    set.add(newPosition.groupId)
+  }
   return [...set]
 }
 
 function onCreatePositionChange(name: string) {
-  createForm.groupIds = addPositionGroup(name, createForm.groupIds)
+  createForm.groupIds = switchPositionGroup(lastCreatePosition.value, name, createForm.groupIds)
+  lastCreatePosition.value = name || ''
 }
 
 function onEditPositionChange(name: string) {
-  editForm.groupIds = addPositionGroup(name, editForm.groupIds)
+  editForm.groupIds = switchPositionGroup(lastEditPosition.value, name, editForm.groupIds)
+  lastEditPosition.value = name || ''
 }
 
 function openPositions() {
@@ -180,6 +187,7 @@ function openCreate() {
     email: '',
     groupIds: [],
   })
+  lastCreatePosition.value = ''
   createVisible.value = true
 }
 
@@ -205,6 +213,7 @@ function openEdit(user: User) {
     avatar: user.avatar || '',
     groupIds: user.groups.map((group) => group.id),
   })
+  lastEditPosition.value = user.position || ''
   editVisible.value = true
 }
 
@@ -391,7 +400,7 @@ onMounted(async () => {
             <el-option v-for="group in groups" :key="group.id" :label="`${group.name} (${group.code})`" :value="group.id" />
           </el-select>
           <div class="muted" style="font-size: 12px; margin-top: 4px">
-            选择职位后会自动勾选对应分组，可手动增删；最终权限以实际分组并集为准。
+            切换职位会移除旧职位的默认分组并加入新职位的默认分组，其他手动分组保留。
           </div>
         </el-form-item>
       </el-form>
@@ -431,7 +440,7 @@ onMounted(async () => {
             <el-option v-for="group in groups" :key="group.id" :label="`${group.name} (${group.code})`" :value="group.id" />
           </el-select>
           <div class="muted" style="font-size: 12px; margin-top: 4px">
-            选择职位会自动加入对应分组，可手动调整；最终权限以实际分组并集为准。
+            切换职位会替换该职位的默认分组，其他手动分组保留；最终权限以实际分组并集为准。
           </div>
         </el-form-item>
         <el-form-item label="手机">
@@ -452,7 +461,7 @@ onMounted(async () => {
 
     <el-dialog v-model="positionVisible" title="职位管理" width="760px">
       <div class="muted" style="margin-bottom: 12px">
-        职位是用户属性；每个职位绑定一个默认权限分组。选择职位时会自动带出该分组，最终权限仍以用户实际分组为准。
+        职位是用户属性；每个职位绑定一个默认权限分组。选择职位时自动带出该分组，切换职位时替换旧职位的默认分组，最终权限仍以用户实际分组为准。
       </div>
       <div class="toolbar">
         <el-button

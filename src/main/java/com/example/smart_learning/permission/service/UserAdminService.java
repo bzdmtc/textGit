@@ -123,8 +123,9 @@ public class UserAdminService {
                 && userRepository.existsByEmail(request.email())) {
             throw new BusinessException(ErrorCode.EMAIL_EXISTS);
         }
+        String oldPosition = user.getPosition();
         String newPosition = blankToNull(request.position());
-        boolean positionChanged = !Objects.equals(user.getPosition(), newPosition);
+        boolean positionChanged = !Objects.equals(oldPosition, newPosition);
         user.setRealname(request.realname());
         user.setNickname(request.nickname());
         user.setPosition(newPosition);
@@ -135,15 +136,21 @@ public class UserAdminService {
 
         List<Long> effectiveGroupIds = request.groupIds();
         if (effectiveGroupIds == null && positionChanged) {
-            Long defaultGroupId = defaultGroupId(newPosition);
-            if (defaultGroupId != null) {
-                List<Long> currentGroupIds = userGroupRepository.findByUserId(id).stream()
-                        .map(SysUserGroup::getGroupId)
-                        .toList();
-                if (!currentGroupIds.contains(defaultGroupId)) {
-                    effectiveGroupIds = new ArrayList<>(currentGroupIds);
-                    effectiveGroupIds.add(defaultGroupId);
-                }
+            // 切换职位：移除旧职位的默认分组，加入新职位的默认分组；其他手动分组保留
+            List<Long> currentGroupIds = userGroupRepository.findByUserId(id).stream()
+                    .map(SysUserGroup::getGroupId)
+                    .toList();
+            List<Long> merged = new ArrayList<>(currentGroupIds);
+            Long oldDefaultGroupId = defaultGroupId(oldPosition);
+            if (oldDefaultGroupId != null) {
+                merged.remove(oldDefaultGroupId);
+            }
+            Long newDefaultGroupId = defaultGroupId(newPosition);
+            if (newDefaultGroupId != null && !merged.contains(newDefaultGroupId)) {
+                merged.add(newDefaultGroupId);
+            }
+            if (!merged.equals(currentGroupIds)) {
+                effectiveGroupIds = merged;
             }
         }
         if (effectiveGroupIds != null) {
