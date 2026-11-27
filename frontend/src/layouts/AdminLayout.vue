@@ -15,6 +15,7 @@ import {
   RefreshRight,
   Ticket,
   Timer,
+  ChatDotRound,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -35,6 +36,7 @@ const iconMap: Record<string, unknown> = {
   RefreshRight,
   Ticket,
   Timer,
+  ChatDotRound,
 }
 
 const adminMenus = computed(() => store.menus.filter((menu) => menu.path.startsWith('/admin')))
@@ -79,7 +81,7 @@ async function handleCommand(command: string) {
         </el-menu-item>
       </el-menu>
       <div class="aside-footer">
-        <div class="muted" style="color: #94a3b8">基础版 · 模块 4：秒杀</div>
+        <div class="muted" style="color: #94a3b8">基础版 · 模块 5：学习</div>
       </div>
     </el-aside>
 

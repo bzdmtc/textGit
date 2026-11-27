@@ -95,8 +95,9 @@ V4 迁移新增 23 个权限点（总数 38）：
 
 - 模块 3 交易（V7）：`order/browse`、`refund/browse|approve`、`coupon/browse|create|edit|delete`
 - 模块 4 秒杀（V11）：`seckill/browse`（VIEW，菜单 `/admin/seckill`）、`seckill/create`、`seckill/edit`（编辑/上下线/对账）、`seckill/delete`
+- 模块 5 学习（V13）：`review/browse`（VIEW，菜单 `/admin/reviews`）、`review/approve`（通过/驳回评价）
 
-分配：`ADMIN` 自动获得全部新权限；`TEACHER`/`STUDENT` 不授予秒杀后台权限。前台秒杀浏览公开，抢购仅需登录。
+分配：`ADMIN` 自动获得全部新权限；`TEACHER`/`STUDENT` 不授予秒杀后台权限与评价审核权限。前台秒杀浏览公开，抢购仅需登录；学习与评价提交需已购课程。
 
 ## 9. 验收用例
 

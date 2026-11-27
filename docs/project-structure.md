@@ -1,6 +1,6 @@
 # 项目代码地图
 
-> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易** 和 **模块 4：秒杀**。
+> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀** 和 **模块 5：学习**。
 
 ## 一、目录树
 
@@ -14,6 +14,7 @@ smart_learning/
 │   ├── permission.md                      # 禅道式权限设计
 │   ├── read-write-splitting.md            # 主从读写分离设计
 │   ├── seckill.md                         # 秒杀：Redis/Kafka/库存对账
+│   ├── learn.md                           # 学习：进度/笔记/收藏/评价审核
 │   └── chat-history-2026-11-25.md         # 本次项目会话记录
 ├── scripts/
 │   ├── init-databases.sql                 # 建库、账号、权限
@@ -353,6 +354,53 @@ frontend/src/
 | `scripts/seckill-concurrency.mjs` | 20 用户 × 10 并发抢 10 名额：恰好 10 单、无超卖/重复；重复 Kafka 消息不重复建单 |
 | `scripts/reset-seckill-data.sql` | 清理秒杀订单/记录/临时用户并回补库存（保留 V11 演示活动） |
 
+## 四之三、模块 5：学习代码地图
+
+### 后端新增
+
+| 路径 | 说明 |
+|---|---|
+| `learn/entity/*` | `LessonProgress`、`Note`、`CourseFavorite`、`CourseReview` |
+| `learn/service/LearnAccessService` | 登录 + 已购校验、课时归属校验、课程有效课时 |
+| `learn/service/LearnService` | 学习页数据、进度上报（取最大值、95% 自动完成）、课程进度重算 |
+| `learn/service/NoteService` | 学员私有笔记增删改查（按课时） |
+| `learn/service/FavoriteService` | 收藏/取消/状态/我的收藏（含已购与进度） |
+| `learn/service/ReviewService` | 评价提交/修改（一单一评、重新待审）、公开汇总、后台审核与评分重算 |
+| `learn/controller/LearnController` | `/api/v1/learn/**` |
+| `learn/controller/ReviewPublicController` | `/api/v1/public/courses/{id}/reviews` |
+| `learn/controller/ReviewAdminController` | `/api/v1/admin/reviews/**` |
+
+### 前端新增
+
+| 文件 | 说明 |
+|---|---|
+| `views/public/LearnView.vue` | 播放器、章节切换、断点续播、进度、笔记、收藏、评价 |
+| `views/admin/ReviewListView.vue` | 评价筛选、通过、填写原因驳回 |
+| `api/learn.ts`、`types.ts` | 学习/评价接口与类型 |
+| `router/index.ts` | `/learn/:courseId/:lessonId?`、`/admin/reviews` |
+| `views/public/CourseDetailView.vue` | 已购「去学习」、收藏按钮、评价区与评分 |
+| `views/public/UserCenterView.vue` | 我的课程「继续学习」、我的收藏 |
+
+### 路径 ↔ 功能对照
+
+| 路径 | 模块 | 功能 |
+|---|---|---|
+| `/learn/:courseId/:lessonId?` | 学习 | 已购学员学习页；未购返回 30009 |
+| `/api/v1/learn/courses/{id}` | 学习 | 章节/课时/进度/收藏/我的评价 |
+| `/api/v1/learn/.../progress` | 学习 | 观看时长与完成状态，重算 `user_course.progress_percent` |
+| `/api/v1/learn/.../notes`、`/learn/notes/{id}` | 学习 | 笔记 |
+| `/api/v1/learn/favorites...` | 学习 | 收藏 |
+| `/api/v1/learn/courses/{id}/reviews` | 学习 | 评价（仅已购、一单一评） |
+| `/api/v1/public/courses/{id}/reviews` | 学习 | 已通过评价与平均分 |
+| `/admin/reviews` | 学习 | 评价审核（`review:browse/approve`） |
+
+### 自动化验收脚本
+
+| 脚本 | 说明 |
+|---|---|
+| `scripts/learn-smoke.mjs` | 购课 → 拒绝未购 → 进度 → 笔记 → 收藏 → 评价 → 审核 → 评分 → 我的课程 |
+| `frontend/scripts/learn-ui-smoke.cjs` | 浏览器：学习页播放/标记完成/笔记/收藏/评价 + 后台审核 |
+
 ## 五、数据库迁移对照
 
 | 脚本 | 模块 | 内容 |
@@ -368,6 +416,8 @@ frontend/src/
 | `V9__user_position_seed.sql` | 系统底座 | 补充演示账号职位（独立迁移，避免同批编译时列不存在） |
 | `V10__seckill_schema.sql` | 秒杀 | `seckill_activity`、`seckill_record`、库存/时间/限购约束与索引 |
 | `V11__seckill_seed.sql` | 秒杀 | 4 个秒杀权限点 + ADMIN 授权 + 2 个演示活动（进行中/即将开始） |
+| `V12__learn_schema.sql` | 学习 | `lesson_progress`、`note`、`course_favorite`、`course_review` 及唯一约束/索引 |
+| `V13__learn_priv_seed.sql` | 学习 | 2 个评价审核权限点 + ADMIN 授权 |
 
 ## 六、后续模块规划
 
@@ -377,8 +427,8 @@ frontend/src/
 | 课程与内容 | `course/`、`content/`、`storage/`、前台页面 | 已完成 |
 | 交易 | `order/`、`payment/`、`coupon/`、`enrollment/` | 已完成 |
 | 秒杀 | `seckill/`、Kafka 生产者/消费者、Redis Lua | 已完成 |
-| 学习 | `learn/`、播放器/进度/笔记/评价 | 待实现（下一模块） |
-| 题库考试 | `question/`、`exam/` | 待实现 |
+| 学习 | `learn/`、播放器/进度/笔记/收藏/评价 | 已完成 |
+| 题库考试 | `question/`、`exam/` | 待实现（下一模块） |
 | 院校看板 | `university/`、`stats/` | 待实现 |
 | 实时聊天 | `chat/`（WebSocket/STOMP） | 后续 |
 | Elasticsearch | `search/` 的 ES 实现 | 后续 |

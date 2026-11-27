@@ -1,6 +1,6 @@
 # 智学考研 · 基础版
 
-仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易** 和 **模块 4：秒杀**，后续模块按「学习 → 题库 → 院校看板」逐个实现。
+仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀** 和 **模块 5：学习**，后续模块按「题库 → 院校看板」逐个实现。
 
 ## 当前已实现
 
@@ -30,8 +30,13 @@
   - Redis 库存预热 + Lua 原子扣减（时间校验/库存/限购一次完成），活动列表展示实时剩余名额
   - Kafka `seckill-order` 异步建单（key=活动 ID 有序、手动 ack、重试 3 次进死信队列），前端轮询排队结果
   - 秒杀订单 15 分钟支付窗口；超时/取消回补 DB 与 Redis 库存；`seckill_record` 唯一约束防重复下单
-- 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券、秒杀
-- Flyway 迁移与种子数据（V1–V11）
+- **学习模块**：
+  - 学习页视频播放、章节切换、断点续播，每 10 秒/暂停/切课时上报进度
+  - 视频观看达 95% 或手动标记完成；课程进度按已完成课时重算
+  - 课时笔记增删改、课程收藏与我的收藏、课程评价（一单一评）
+  - 评价后台审核：通过后展示在课程详情并重算课程平均评分
+- 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券、秒杀、评价审核
+- Flyway 迁移与种子数据（V1–V13）
 
 ## 技术栈
 
@@ -97,7 +102,7 @@ sqlcmd -S localhost -E -C -i scripts/init-databases.sql \
   -v MASTER_PASSWORD="<MASTER_DB_PASSWORD>" READ_PASSWORD="<READ_DB_PASSWORD>"
 ```
 
-首次启动时 Flyway 只对主库执行迁移（当前 V1–V11）。开发环境可把主库备份还原到从库：
+首次启动时 Flyway 只对主库执行迁移（当前 V1–V13）。开发环境可把主库备份还原到从库：
 
 ```bash
 sqlcmd -S localhost -E -C -Q "BACKUP DATABASE smart_learning TO DISK=N'C:\temp\smart_learning.bak' WITH INIT"
@@ -181,6 +186,22 @@ sqlcmd -S localhost -C -E -b -I -f 65001 -d smart_learning -i scripts/reset-seck
 
 秒杀设计细节（Redis 键、Lua 返回码、Kafka 重试/死信、对账口径）见 [docs/seckill.md](docs/seckill.md)。
 
+## 学习演示流程
+
+1. `student` 登录 → 购买并支付任意课程 → 课程详情按钮变为「去学习」。
+2. 进入学习页：播放视频、切换章节；暂停/切课时自动保存进度，下次进入续播。
+3. 在课时下方记录笔记（可编辑/删除），右上角收藏课程。
+4. 学习进度达 100%（或手动标记完成）后提交课程评价；后台 `admin` → 评价审核 → 通过。
+5. 课程详情页展示已通过评价，课程评分按通过评价重算；个人中心「我的课程/我的收藏」可继续学习。
+
+```bash
+sqlcmd -S localhost -C -E -b -I -f 65001 -d smart_learning -i scripts/reset-trade-data.sql
+node scripts/learn-smoke.mjs       # API：购课 → 进度 → 笔记 → 收藏 → 评价 → 审核
+node frontend/scripts/learn-ui-smoke.cjs  # 浏览器 UI 全链路（需前后端已启动）
+```
+
+学习设计细节见 [docs/learn.md](docs/learn.md)。
+
 ## 核心接口
 
 | 方法 | 路径 | 说明 |
@@ -220,6 +241,13 @@ sqlcmd -S localhost -C -E -b -I -f 65001 -d smart_learning -i scripts/reset-seck
 | POST | `/api/v1/seckill/activities/{id}/claim` | 抢购（Redis 预扣 + Kafka 入队） |
 | GET | `/api/v1/seckill/activities/{id}/result` | 轮询抢购/建单结果 |
 | GET/POST/PUT/DELETE | `/api/v1/admin/seckill/activities...` | 后台秒杀活动、抢购记录、库存对账 |
+| GET | `/api/v1/learn/courses/{courseId}` | 学习页数据（章节/课时/进度/收藏/我的评价） |
+| POST | `/api/v1/learn/courses/{courseId}/lessons/{lessonId}/progress` | 上报学习进度 |
+| GET/POST/PUT/DELETE | `/api/v1/learn/.../notes`、`/learn/notes/{id}` | 课时笔记 |
+| GET/POST/DELETE | `/api/v1/learn/favorites` | 收藏列表 / 收藏 / 取消 |
+| POST | `/api/v1/learn/courses/{courseId}/reviews` | 提交课程评价 |
+| GET | `/api/v1/public/courses/{courseId}/reviews` | 公开评价汇总 |
+| GET/PUT | `/api/v1/admin/reviews...` | 后台评价审核 |
 | GET | `/api/v1/system/route-check/read` | 验证读路由（`smart_learning_read`） |
 | GET | `/api/v1/system/route-check/master` | 验证写路由（`smart_learning`） |
 | POST | `/api/v1/system/kafka-check` | Kafka 生产者冒烟（发送 `system-check`） |
@@ -231,8 +259,9 @@ sqlcmd -S localhost -C -E -b -I -f 65001 -d smart_learning -i scripts/reset-seck
 - 权限模型：[docs/permission.md](docs/permission.md)
 - 读写分离：[docs/read-write-splitting.md](docs/read-write-splitting.md)
 - 秒杀设计：[docs/seckill.md](docs/seckill.md)
+- 学习设计：[docs/learn.md](docs/learn.md)
 - 2026-11-25 会话记录：[docs/chat-history-2026-11-25.md](docs/chat-history-2026-11-25.md)
 
 ## 后续模块
 
-学习（播放器/进度/笔记/评价）、题库考试、院校与看板、实时聊天、Elasticsearch 等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。
+题库考试、院校与看板、实时聊天、Elasticsearch 等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。

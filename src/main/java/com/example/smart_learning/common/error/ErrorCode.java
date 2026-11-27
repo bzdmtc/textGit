@@ -22,6 +22,10 @@ public enum ErrorCode {
     PHONE_EXISTS(30005, "手机号已被绑定"),
     EMAIL_EXISTS(30006, "邮箱已被绑定"),
     GROUP_HAS_USERS(30007, "分组下还有用户，不能删除"),
+    LESSON_NOT_FOUND(30008, "课时不存在"),
+    NOT_ENROLLED(30009, "请先购买课程后再学习"),
+    REVIEW_NOT_FOUND(30010, "评价不存在"),
+    REVIEW_STATUS_INVALID(30011, "评价当前状态不允许该操作"),
 
     COURSE_NOT_PURCHASABLE(40001, "课程不存在或未上架"),
     ALREADY_ENROLLED(40002, "您已拥有该课程"),

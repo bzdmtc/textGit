@@ -78,7 +78,7 @@ async function logout() {
         </div>
         <div class="footer-meta">
           <span>Spring Boot 4.2 · Vue 3</span>
-          <span>基础版 · 模块 4：秒杀</span>
+          <span>基础版 · 模块 5：学习</span>
         </div>
       </div>
     </footer>

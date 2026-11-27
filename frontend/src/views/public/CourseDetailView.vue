@@ -5,9 +5,10 @@ import { ElMessage } from 'element-plus'
 import { VideoPlay } from '@element-plus/icons-vue'
 import { publicApi } from '@/api/public'
 import { couponApi, orderApi, publicCouponApi } from '@/api/trade'
+import { learnApi, reviewPublicApi } from '@/api/learn'
 import { useAuthStore } from '@/stores/auth'
 import { couponRuleText, couponValueText, formatDate } from '@/utils/format'
-import type { Coupon, CourseDetail, PurchaseStatus, UserCoupon } from '@/types'
+import type { Coupon, CourseDetail, PurchaseStatus, ReviewSummary, UserCoupon } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,11 +21,21 @@ const coupons = ref<Coupon[]>([])
 const myCoupons = ref<UserCoupon[]>([])
 const purchase = ref<PurchaseStatus | null>(null)
 const claimingId = ref<number | null>(null)
+const reviews = ref<ReviewSummary | null>(null)
+const favorited = ref(false)
+const favoriteLoading = ref(false)
 
 const enrolled = computed(() => purchase.value?.enrolled === true)
 const pendingOrderNo = computed(() => purchase.value?.pendingOrderNo || '')
+const firstLessonId = computed(() => {
+  const chapters = detail.value?.chapters || []
+  for (const chapter of chapters) {
+    if (chapter.lessons.length > 0) return chapter.lessons[0].id
+  }
+  return null
+})
 const buyLabel = computed(() => {
-  if (enrolled.value) return '已购买 · 去我的课程'
+  if (enrolled.value) return '已购买 · 去学习'
   if (pendingOrderNo.value) return '去支付'
   return '立即报名'
 })
@@ -35,11 +46,20 @@ async function load() {
     const response = await publicApi.courseDetail(Number(route.params.id))
     detail.value = response.data.data
     activeChapters.value = detail.value.chapters.map((chapter) => chapter.id)
-    await loadSide()
+    await Promise.all([loadSide(), loadReviews()])
   } catch {
     detail.value = null
   } finally {
     loading.value = false
+  }
+}
+
+async function loadReviews() {
+  try {
+    const response = await reviewPublicApi.forCourse(Number(route.params.id))
+    reviews.value = response.data.data
+  } catch {
+    reviews.value = null
   }
 }
 
@@ -54,17 +74,41 @@ async function loadSide() {
   if (!store.isLoggedIn) {
     myCoupons.value = []
     purchase.value = null
+    favorited.value = false
     return
   }
   try {
-    const [mineResponse, statusResponse] = await Promise.all([
+    const [mineResponse, statusResponse, favoriteResponse] = await Promise.all([
       couponApi.mine(),
       orderApi.purchaseStatus(courseId),
+      learnApi.favoriteStatus(courseId),
     ])
     myCoupons.value = mineResponse.data.data
     purchase.value = statusResponse.data.data
+    favorited.value = favoriteResponse.data.data.favorited
   } catch {
     myCoupons.value = []
+  }
+}
+
+async function toggleFavorite() {
+  if (!store.isLoggedIn) {
+    await router.push({ path: '/login', query: { redirect: route.fullPath } })
+    return
+  }
+  favoriteLoading.value = true
+  try {
+    if (favorited.value) {
+      await learnApi.removeFavorite(Number(route.params.id))
+      favorited.value = false
+      ElMessage.success('已取消收藏')
+    } else {
+      await learnApi.addFavorite(Number(route.params.id))
+      favorited.value = true
+      ElMessage.success('已收藏课程')
+    }
+  } finally {
+    favoriteLoading.value = false
   }
 }
 
@@ -99,7 +143,11 @@ async function claim(coupon: Coupon) {
 
 async function buy() {
   if (enrolled.value) {
-    await router.push('/user?tab=courses')
+    if (firstLessonId.value) {
+      await router.push(`/learn/${route.params.id}/${firstLessonId.value}`)
+    } else {
+      await router.push('/user?tab=courses')
+    }
     return
   }
   if (pendingOrderNo.value) {
@@ -146,7 +194,8 @@ onMounted(load)
             <h1>{{ detail.course.title }}</h1>
             <p class="subtitle">{{ detail.course.subtitle }}</p>
             <div class="meta">
-              <span>评分 {{ detail.course.rating }}</span>
+              <span>评分 {{ reviews?.reviewCount ? Number(reviews.averageRating).toFixed(1) : detail.course.rating }}</span>
+              <span>{{ reviews?.reviewCount || 0 }} 条评价</span>
               <span>{{ detail.course.studentCount }} 人学习</span>
               <span>名师主讲</span>
             </div>
@@ -192,6 +241,34 @@ onMounted(load)
               </el-collapse-item>
             </el-collapse>
           </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h2>学员评价</h2>
+              <span v-if="reviews?.reviewCount">
+                平均 {{ Number(reviews.averageRating).toFixed(1) }} 分 · {{ reviews.reviewCount }} 条
+              </span>
+              <span v-else>暂无评价</span>
+            </div>
+            <div v-if="reviews?.items.length" class="review-list">
+              <div v-for="review in reviews.items" :key="review.id" class="review-item">
+                <div class="review-head">
+                  <div class="review-user">
+                    <el-avatar :size="32" style="background: #e60012">
+                      {{ (review.userNickname || review.userAccount || '学').slice(0, 1) }}
+                    </el-avatar>
+                    <div>
+                      <strong>{{ review.userNickname || review.userAccount || '学员' }}</strong>
+                      <div class="review-date">{{ formatDate(review.createdAt) }}</div>
+                    </div>
+                  </div>
+                  <el-rate :model-value="review.rating" disabled size="small" />
+                </div>
+                <p>{{ review.content }}</p>
+              </div>
+            </div>
+            <el-empty v-else description="还没有评价，购买学习后即可评价" :image-size="60" />
+          </section>
         </div>
 
         <aside class="side">
@@ -225,6 +302,14 @@ onMounted(load)
               @click="router.push(store.isLoggedIn ? '/user?tab=orders' : '/login')"
             >
               我的订单
+            </el-button>
+            <el-button
+              size="large"
+              style="width: 100%; margin: 10px 0 0"
+              :loading="favoriteLoading"
+              @click="toggleFavorite"
+            >
+              {{ favorited ? '★ 已收藏' : '☆ 收藏课程' }}
             </el-button>
 
             <div class="coupon-box">
@@ -541,5 +626,44 @@ onMounted(load)
 .coupon-empty {
   color: #9ca3af;
   font-size: 12px;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.review-item {
+  border: 1px solid #f1f3f5;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #fafafa;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.review-date {
+  color: #9ca3af;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.review-item p {
+  margin: 10px 0 0;
+  color: #4b5563;
+  line-height: 1.7;
+  white-space: pre-wrap;
 }
 </style>

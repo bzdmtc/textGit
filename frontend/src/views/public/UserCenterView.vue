@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { couponApi, myCourseApi, orderApi } from '@/api/trade'
+import { learnApi } from '@/api/learn'
 import { useAuthStore } from '@/stores/auth'
 import {
   couponRuleText,
@@ -12,9 +13,9 @@ import {
   orderStatusMeta,
   userCouponStatusMeta,
 } from '@/utils/format'
-import type { MyCourse, Order, UserCoupon } from '@/types'
+import type { FavoriteCourse, MyCourse, Order, UserCoupon } from '@/types'
 
-type TabName = 'orders' | 'coupons' | 'courses'
+type TabName = 'orders' | 'coupons' | 'courses' | 'favorites'
 
 const route = useRoute()
 const router = useRouter()
@@ -32,6 +33,8 @@ const couponFilter = ref('')
 const couponsLoading = ref(false)
 const myCourses = ref<MyCourse[]>([])
 const coursesLoading = ref(false)
+const favorites = ref<FavoriteCourse[]>([])
+const favoritesLoading = ref(false)
 
 const refundVisible = ref(false)
 const refundOrder = ref<Order | null>(null)
@@ -46,13 +49,14 @@ const visibleCoupons = computed(() => {
 const unusedCouponCount = computed(() => myCoupons.value.filter((coupon) => coupon.status === 'UNUSED').length)
 
 function normalizeTab(value: unknown): TabName {
-  return value === 'coupons' || value === 'courses' ? value : 'orders'
+  return value === 'coupons' || value === 'courses' || value === 'favorites' ? value : 'orders'
 }
 
 function loadTab(name: TabName) {
   if (name === 'orders') loadOrders()
   if (name === 'coupons') loadCoupons()
   if (name === 'courses') loadCourses()
+  if (name === 'favorites') loadFavorites()
 }
 
 async function loadOrders() {
@@ -88,6 +92,20 @@ async function loadCourses() {
   } finally {
     coursesLoading.value = false
   }
+}
+
+async function loadFavorites() {
+  favoritesLoading.value = true
+  try {
+    const response = await learnApi.favorites()
+    favorites.value = response.data.data
+  } finally {
+    favoritesLoading.value = false
+  }
+}
+
+function goLearn(courseId: number) {
+  router.push(`/learn/${courseId}`)
 }
 
 function handleTabChange(name: string | number) {
@@ -186,6 +204,10 @@ onMounted(() => {
         <div>
           <strong>{{ myCourses.length || '—' }}</strong>
           <span>已购课程</span>
+        </div>
+        <div>
+          <strong>{{ favorites.length || '—' }}</strong>
+          <span>收藏课程</span>
         </div>
       </div>
     </div>
@@ -340,9 +362,55 @@ onMounted(() => {
                 <span>开通于 {{ formatDate(course.enrolledAt) }}</span>
                 <span>订单 {{ course.orderId || '-' }}</span>
               </div>
+              <el-button size="small" type="primary" plain @click.stop="goLearn(course.courseId)">
+                继续学习
+              </el-button>
             </div>
           </div>
           <el-empty v-if="!myCourses.length" description="还没有已购课程">
+            <el-button type="primary" @click="router.push('/courses')">去课程中心</el-button>
+          </el-empty>
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane name="favorites" label="我的收藏">
+        <div v-loading="favoritesLoading" class="course-grid">
+          <div
+            v-for="favorite in favorites"
+            :key="favorite.id"
+            class="course-card"
+            @click="router.push(`/courses/${favorite.courseId}`)"
+          >
+            <div
+              class="course-cover"
+              :style="favorite.coverUrl ? { backgroundImage: `url(${favorite.coverUrl})` } : undefined"
+            ></div>
+            <div class="course-info">
+              <strong>{{ favorite.courseTitle }}</strong>
+              <div class="course-tags">
+                <el-tag size="small" effect="plain">{{ favorite.subject }}</el-tag>
+                <el-tag size="small" effect="plain" type="info">{{ favorite.stage }}</el-tag>
+                <el-tag v-if="favorite.enrolled" size="small" effect="dark" type="danger">已购</el-tag>
+              </div>
+              <el-progress
+                v-if="favorite.enrolled"
+                :percentage="Number(favorite.progressPercent || 0)"
+                :stroke-width="6"
+              />
+              <div class="course-meta">
+                <span>收藏于 {{ formatDate(favorite.favoritedAt) }}</span>
+                <span>评分 {{ Number(favorite.rating).toFixed(1) }}</span>
+              </div>
+              <el-button
+                v-if="favorite.enrolled"
+                size="small"
+                type="primary"
+                plain
+                @click.stop="goLearn(favorite.courseId)"
+              >继续学习</el-button>
+            </div>
+          </div>
+          <el-empty v-if="!favorites.length" description="还没有收藏课程">
             <el-button type="primary" @click="router.push('/courses')">去课程中心</el-button>
           </el-empty>
         </div>

@@ -415,3 +415,89 @@ export interface SeckillRecord {
   reason?: string | null
   createdAt?: string | null
 }
+
+export interface LearnLesson {
+  id: number
+  title: string
+  videoUrl?: string | null
+  durationSec: number
+  isTrial: boolean
+  sort: number
+  watchedSec: number
+  completed: boolean
+}
+
+export interface LearnChapter {
+  id: number
+  title: string
+  sort: number
+  lessons: LearnLesson[]
+}
+
+export interface LearnCourse {
+  courseId: number
+  title: string
+  subtitle?: string | null
+  coverUrl?: string | null
+  subject: string
+  stage: string
+  progressPercent: number
+  lastLessonId?: number | null
+  favorited: boolean
+  myReview?: CourseReview | null
+  chapters: LearnChapter[]
+}
+
+export interface ProgressResult {
+  lessonId: number
+  watchedSec: number
+  completed: boolean
+  courseProgressPercent: number
+}
+
+export interface NoteItem {
+  id: number
+  lessonId: number
+  lessonTitle?: string | null
+  content: string
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface FavoriteCourse {
+  id: number
+  courseId: number
+  courseTitle: string
+  coverUrl?: string | null
+  subject: string
+  stage: string
+  price: number
+  rating: number
+  studentCount: number
+  enrolled: boolean
+  progressPercent: number
+  favoritedAt?: string | null
+}
+
+export interface CourseReview {
+  id: number
+  courseId: number
+  courseTitle?: string | null
+  userId: number
+  userAccount?: string | null
+  userNickname?: string | null
+  orderId?: number | null
+  rating: number
+  content: string
+  status: string
+  adminNote?: string | null
+  reviewedAt?: string | null
+  createdAt?: string | null
+}
+
+export interface ReviewSummary {
+  courseId: number
+  averageRating: number
+  reviewCount: number
+  items: CourseReview[]
+}

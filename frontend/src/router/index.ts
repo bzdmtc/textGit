@@ -12,6 +12,12 @@ const router = createRouter({
         { path: 'courses', name: 'course-list', component: () => import('@/views/public/CourseListView.vue') },
         { path: 'courses/:id', name: 'course-detail', component: () => import('@/views/public/CourseDetailView.vue') },
         { path: 'seckill', name: 'seckill', component: () => import('@/views/public/SeckillView.vue') },
+        {
+          path: 'learn/:courseId/:lessonId?',
+          name: 'learn',
+          component: () => import('@/views/public/LearnView.vue'),
+          meta: { requiresAuth: true },
+        },
         { path: 'teachers', name: 'teachers', component: () => import('@/views/public/TeacherListView.vue') },
         { path: 'articles', name: 'articles', component: () => import('@/views/public/ArticleListView.vue') },
         { path: 'articles/:id', name: 'article-detail', component: () => import('@/views/public/ArticleDetailView.vue') },
@@ -119,6 +125,12 @@ const router = createRouter({
           name: 'admin-seckill',
           component: () => import('@/views/admin/SeckillListView.vue'),
           meta: { requiresAuth: true, priv: { module: 'seckill', method: 'browse' } },
+        },
+        {
+          path: 'reviews',
+          name: 'admin-reviews',
+          component: () => import('@/views/admin/ReviewListView.vue'),
+          meta: { requiresAuth: true, priv: { module: 'review', method: 'browse' } },
         },
         {
           path: 'logs',

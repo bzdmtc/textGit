@@ -63,6 +63,9 @@ public enum PrivilegeRegistry {
     SECKILL_EDIT("seckill", "edit", "编辑/预热秒杀活动", "ACTION", null, null, 342),
     SECKILL_DELETE("seckill", "delete", "删除/停用秒杀活动", "ACTION", null, null, 343),
 
+    REVIEW_BROWSE("review", "browse", "评价审核", "VIEW", "/admin/reviews", "ChatDotRound", 350),
+    REVIEW_APPROVE("review", "approve", "审核评价", "ACTION", null, null, 351),
+
     AUDIT_BROWSE("audit", "browse", "审计日志", "VIEW", "/admin/logs", "Document", 140),
 
     PROFILE_EDIT("profile", "edit", "编辑个人资料", "ACTION", null, null, 200);
