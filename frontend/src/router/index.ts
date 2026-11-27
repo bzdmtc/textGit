@@ -11,6 +11,7 @@ const router = createRouter({
         { path: '', name: 'home', component: () => import('@/views/public/HomeView.vue') },
         { path: 'courses', name: 'course-list', component: () => import('@/views/public/CourseListView.vue') },
         { path: 'courses/:id', name: 'course-detail', component: () => import('@/views/public/CourseDetailView.vue') },
+        { path: 'seckill', name: 'seckill', component: () => import('@/views/public/SeckillView.vue') },
         { path: 'teachers', name: 'teachers', component: () => import('@/views/public/TeacherListView.vue') },
         { path: 'articles', name: 'articles', component: () => import('@/views/public/ArticleListView.vue') },
         { path: 'articles/:id', name: 'article-detail', component: () => import('@/views/public/ArticleDetailView.vue') },
@@ -112,6 +113,12 @@ const router = createRouter({
           name: 'admin-refunds',
           component: () => import('@/views/admin/RefundListView.vue'),
           meta: { requiresAuth: true, priv: { module: 'refund', method: 'browse' } },
+        },
+        {
+          path: 'seckill',
+          name: 'admin-seckill',
+          component: () => import('@/views/admin/SeckillListView.vue'),
+          meta: { requiresAuth: true, priv: { module: 'seckill', method: 'browse' } },
         },
         {
           path: 'logs',

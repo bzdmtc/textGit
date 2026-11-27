@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/email/login",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/public/**",
+                                "/api/v1/seckill/activities",
                                 "/uploads/**",
                                 "/actuator/health",
                                 "/v3/api-docs/**",

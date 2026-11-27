@@ -1,6 +1,6 @@
 # 项目代码地图
 
-> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容** 和 **模块 3：交易**。
+> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易** 和 **模块 4：秒杀**。
 
 ## 一、目录树
 
@@ -13,6 +13,7 @@ smart_learning/
 │   ├── project-structure.md               # 本文件：代码地图
 │   ├── permission.md                      # 禅道式权限设计
 │   ├── read-write-splitting.md            # 主从读写分离设计
+│   ├── seckill.md                         # 秒杀：Redis/Kafka/库存对账
 │   └── chat-history-2026-11-25.md         # 本次项目会话记录
 ├── scripts/
 │   ├── init-databases.sql                 # 建库、账号、权限
@@ -305,6 +306,53 @@ frontend/src/
 
 > 时间约定：`DATETIME2` 统一存 UTC，Java 使用 `LocalDateTime.now(ZoneOffset.UTC)`；不使用 `hibernate.jdbc.time_zone`，避免 `LocalDateTime` 二次时区换算导致 SQL 时间比较（订单超时、券有效期）错位。前端通过 `utils/format.ts` 转为本地时间展示。
 
+## 四之二、模块 4：秒杀代码地图
+
+### 后端新增
+
+| 路径 | 说明 |
+|---|---|
+| `seckill/config/SeckillKafkaConfig` | `seckill-order` / `seckill-order-dlq` Topic、生产者/消费者工厂、手动 ack、重试 3 次死信 |
+| `seckill/service/SeckillStockService` | Redis 库存预热、Lua 原子扣减/限购、回补、库存调整 |
+| `seckill/service/SeckillPurchaseService` | 抢购接口：活动/时间/重复校验 → Lua → Kafka 入队；结果轮询 |
+| `seckill/service/SeckillOrderProcessor` | 消费者单事务建单：DB 原子扣库存、`orders/order_item/seckill_record`、唯一约束幂等 |
+| `seckill/service/SeckillKafkaConsumer` | `@KafkaListener` 手动 ack、失败回补 Redis、重复消息忽略 |
+| `seckill/service/SeckillOrderEventListener` | 支付/取消事件：记录 CREATED→PAID / CREATED→CANCELED 并回补库存 |
+| `seckill/service/SeckillActivityService` | 后台活动 CRUD、上下线、对账、抢购记录；前台列表 |
+| `seckill/service/SeckillWarmupRunner` | 启动时把未结束活动的 DB 库存预热到 Redis |
+| `seckill/controller/SeckillController` | `/api/v1/seckill/activities*` |
+| `seckill/controller/SeckillAdminController` | `/api/v1/admin/seckill/activities*` |
+| `order/event/OrderPaidEvent`、`OrderCanceledEvent` | 交易 → 秒杀解耦事件（AFTER_COMMIT + REQUIRES_NEW 处理） |
+| `order/service/OrderNumbers` | 订单号生成（普通/秒杀共用） |
+
+### 前端新增
+
+| 文件 | 说明 |
+|---|---|
+| `views/public/SeckillView.vue` | 秒杀专区：倒计时、剩余名额、抢购排队与结果轮询、跳转收银台 |
+| `views/admin/SeckillListView.vue` | 后台活动 CRUD、上下线、库存对账、抢购记录抽屉 |
+| `api/seckill.ts`、`types.ts` | 秒杀 DTO 与接口封装 |
+| `router/index.ts` | `/seckill`、`/admin/seckill`（`seckill:browse`） |
+
+### 路径 ↔ 功能对照
+
+| 路径 | 模块 | 功能 |
+|---|---|---|
+| `/seckill` | 秒杀 | 前台秒杀专区 + 排队结果轮询 |
+| `/api/v1/seckill/activities` | 秒杀 | 公开列表（剩余库存取 Redis，缺失回退 DB） |
+| `/api/v1/seckill/activities/{id}/claim` | 秒杀 | 登录抢购：Lua 预扣 + Kafka `seckill-order` |
+| `/api/v1/seckill/activities/{id}/result` | 秒杀 | `NOT_JOINED/QUEUED/CREATED/PAID/CANCELED/FAILED` |
+| `/admin/seckill` | 秒杀 | 后台活动管理、对账、记录 |
+| `/api/v1/admin/seckill/activities*` | 秒杀 | CRUD/状态/对账/记录，权限 `seckill:*` |
+
+### 自动化验收脚本
+
+| 脚本 | 说明 |
+|---|---|
+| `scripts/seckill-smoke.mjs` | 建活动/预热 → 抢购 → Kafka 建单 → 支付 → PAID；取消 → CANCELED + 库存回补 |
+| `scripts/seckill-concurrency.mjs` | 20 用户 × 10 并发抢 10 名额：恰好 10 单、无超卖/重复；重复 Kafka 消息不重复建单 |
+| `scripts/reset-seckill-data.sql` | 清理秒杀订单/记录/临时用户并回补库存（保留 V11 演示活动） |
+
 ## 五、数据库迁移对照
 
 | 脚本 | 模块 | 内容 |
@@ -318,6 +366,8 @@ frontend/src/
 | `V7__trade_seed.sql` | 交易 | 7 个新权限点（订单/退款/优惠券）、管理员授权、3 张演示优惠券 |
 | `V8__user_position.sql` | 系统底座 | `sys_user.position`（职位，独立于权限分组） |
 | `V9__user_position_seed.sql` | 系统底座 | 补充演示账号职位（独立迁移，避免同批编译时列不存在） |
+| `V10__seckill_schema.sql` | 秒杀 | `seckill_activity`、`seckill_record`、库存/时间/限购约束与索引 |
+| `V11__seckill_seed.sql` | 秒杀 | 4 个秒杀权限点 + ADMIN 授权 + 2 个演示活动（进行中/即将开始） |
 
 ## 六、后续模块规划
 
@@ -326,8 +376,8 @@ frontend/src/
 | 系统底座 | `security/`、`permission/`、`common/`、`config/` | 已完成 |
 | 课程与内容 | `course/`、`content/`、`storage/`、前台页面 | 已完成 |
 | 交易 | `order/`、`payment/`、`coupon/`、`enrollment/` | 已完成 |
-| 秒杀 | `seckill/`、Kafka 生产者/消费者、Redis Lua | 待实现（下一模块） |
-| 学习 | `learn/`、播放器/进度/笔记/评价 | 待实现 |
+| 秒杀 | `seckill/`、Kafka 生产者/消费者、Redis Lua | 已完成 |
+| 学习 | `learn/`、播放器/进度/笔记/评价 | 待实现（下一模块） |
 | 题库考试 | `question/`、`exam/` | 待实现 |
 | 院校看板 | `university/`、`stats/` | 待实现 |
 | 实时聊天 | `chat/`（WebSocket/STOMP） | 后续 |

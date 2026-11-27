@@ -58,6 +58,11 @@ public enum PrivilegeRegistry {
     COUPON_EDIT("coupon", "edit", "编辑优惠券", "ACTION", null, null, 332),
     COUPON_DELETE("coupon", "delete", "停用优惠券", "ACTION", null, null, 333),
 
+    SECKILL_BROWSE("seckill", "browse", "秒杀活动管理", "VIEW", "/admin/seckill", "Timer", 340),
+    SECKILL_CREATE("seckill", "create", "新增秒杀活动", "ACTION", null, null, 341),
+    SECKILL_EDIT("seckill", "edit", "编辑/预热秒杀活动", "ACTION", null, null, 342),
+    SECKILL_DELETE("seckill", "delete", "删除/停用秒杀活动", "ACTION", null, null, 343),
+
     AUDIT_BROWSE("audit", "browse", "审计日志", "VIEW", "/admin/logs", "Document", 140),
 
     PROFILE_EDIT("profile", "edit", "编辑个人资料", "ACTION", null, null, 200);

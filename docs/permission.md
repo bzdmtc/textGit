@@ -91,7 +91,14 @@ V4 迁移新增 23 个权限点（总数 38）：
 - `TEACHER`：课程、文章、资料的浏览/新增/编辑/删除/发布，讲师浏览，文件上传；数据范围 `OWN`，只能操作 `owner_user_id = 当前用户` 的数据。
 - `STUDENT`：不授予后台内容权限。
 
-## 8. 验收用例
+## 8. 模块 3/4 新增权限
+
+- 模块 3 交易（V7）：`order/browse`、`refund/browse|approve`、`coupon/browse|create|edit|delete`
+- 模块 4 秒杀（V11）：`seckill/browse`（VIEW，菜单 `/admin/seckill`）、`seckill/create`、`seckill/edit`（编辑/上下线/对账）、`seckill/delete`
+
+分配：`ADMIN` 自动获得全部新权限；`TEACHER`/`STUDENT` 不授予秒杀后台权限。前台秒杀浏览公开，抢购仅需登录。
+
+## 9. 验收用例
 
 1. 直接 SQL 查询 `sys_group_priv`、`sys_user_group` 有数据；重启服务后不丢。
 2. admin 可访问 `/api/v1/admin/groups`；teacher 访问返回 403。

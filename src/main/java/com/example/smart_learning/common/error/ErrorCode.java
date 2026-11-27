@@ -38,7 +38,18 @@ public enum ErrorCode {
     REFUND_EXISTS(40013, "该订单已有待处理的退款申请"),
     REFUND_NOT_FOUND(40014, "退款申请不存在"),
     REFUND_ALREADY_HANDLED(40015, "退款申请已处理"),
-    PENDING_ORDER_EXISTS(40016, "该课程有待支付订单，请先支付或取消");
+    PENDING_ORDER_EXISTS(40016, "该课程有待支付订单，请先支付或取消"),
+
+    SECKILL_ACTIVITY_NOT_FOUND(70001, "秒杀活动不存在"),
+    SECKILL_NOT_STARTED(70002, "秒杀活动尚未开始"),
+    SECKILL_ENDED(70003, "秒杀活动已结束"),
+    SECKILL_STOCK_EMPTY(70004, "秒杀名额已抢光"),
+    SECKILL_LIMIT_REACHED(70005, "您已达到该活动的限购数量"),
+    SECKILL_UNAVAILABLE(70006, "秒杀服务暂不可用，请稍后再试"),
+    SECKILL_ALREADY_JOINED(70007, "您已参与该秒杀活动"),
+    SECKILL_COURSE_INVALID(70008, "秒杀课程不存在或未上架"),
+    SECKILL_STATUS_INVALID(70009, "秒杀活动当前状态不允许该操作"),
+    SECKILL_STOCK_INVALID(70010, "剩余库存不能小于已售数量");
 
     private final int code;
     private final String message;

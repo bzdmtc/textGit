@@ -30,8 +30,9 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       properties:
         max.block.ms: 3000
-        delivery.timeout.ms: 5000
-        request.timeout.ms: 4000
+        delivery.timeout.ms: 4000
+        request.timeout.ms: 3000
+        enable.idempotence: true
     consumer:
       group-id: smart-learning
       auto-offset-reset: earliest
@@ -40,6 +41,8 @@ spring:
     listener:
       auto-startup: false
 app:
+  seckill:
+    consumer-enabled: ${SECKILL_CONSUMER_ENABLED:true}
   datasource:
     master:
       url: jdbc:sqlserver://localhost:1433;databaseName=smart_learning;encrypt=true;trustServerCertificate=true

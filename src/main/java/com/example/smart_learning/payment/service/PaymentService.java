@@ -7,6 +7,7 @@ import com.example.smart_learning.coupon.service.CouponUserService;
 import com.example.smart_learning.enrollment.service.EnrollmentService;
 import com.example.smart_learning.order.domain.OrderStateMachine;
 import com.example.smart_learning.order.entity.Order;
+import com.example.smart_learning.order.event.OrderPaidEvent;
 import com.example.smart_learning.order.repository.OrderRepository;
 import com.example.smart_learning.order.service.OrderAssembler;
 import com.example.smart_learning.payment.dto.ChannelDto;
@@ -16,6 +17,7 @@ import com.example.smart_learning.payment.gateway.PaymentChannel;
 import com.example.smart_learning.payment.gateway.PaymentResult;
 import com.example.smart_learning.payment.repository.PaymentRecordRepository;
 import com.example.smart_learning.security.SecurityUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,7 @@ public class PaymentService {
     private final CouponUserService couponUserService;
     private final EnrollmentService enrollmentService;
     private final OrderAssembler orderAssembler;
+    private final ApplicationEventPublisher eventPublisher;
     private final Map<String, PaymentChannel> channels = new LinkedHashMap<>();
 
     public PaymentService(OrderRepository orderRepository,
@@ -41,12 +44,14 @@ public class PaymentService {
                           CouponUserService couponUserService,
                           EnrollmentService enrollmentService,
                           OrderAssembler orderAssembler,
+                          ApplicationEventPublisher eventPublisher,
                           List<PaymentChannel> paymentChannels) {
         this.orderRepository = orderRepository;
         this.paymentRecordRepository = paymentRecordRepository;
         this.couponUserService = couponUserService;
         this.enrollmentService = enrollmentService;
         this.orderAssembler = orderAssembler;
+        this.eventPublisher = eventPublisher;
         for (PaymentChannel channel : paymentChannels) {
             channels.put(channel.code(), channel);
         }
@@ -113,6 +118,7 @@ public class PaymentService {
 
         couponUserService.markUsed(order);
         enrollmentService.enroll(order);
+        eventPublisher.publishEvent(new OrderPaidEvent(order.getOrderNo()));
         return new PaymentResultDto(orderAssembler.toDto(order), channel.code(),
                 result.transactionNo(), result.paidAt(), "支付成功，课程已开通");
     }

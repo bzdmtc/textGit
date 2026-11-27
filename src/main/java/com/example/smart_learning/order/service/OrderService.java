@@ -24,10 +24,12 @@ import com.example.smart_learning.order.dto.RefundDto;
 import com.example.smart_learning.order.entity.Order;
 import com.example.smart_learning.order.entity.OrderItem;
 import com.example.smart_learning.order.entity.RefundRequest;
+import com.example.smart_learning.order.event.OrderCanceledEvent;
 import com.example.smart_learning.order.repository.OrderItemRepository;
 import com.example.smart_learning.order.repository.OrderRepository;
 import com.example.smart_learning.order.repository.RefundRequestRepository;
 import com.example.smart_learning.security.SecurityUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,12 +40,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -51,7 +51,6 @@ import java.util.stream.Collectors;
 @Master
 public class OrderService {
 
-    private static final DateTimeFormatter ORDER_NO_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final int ORDER_EXPIRE_MINUTES = 30;
 
     private final OrderRepository orderRepository;
@@ -63,6 +62,8 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final CouponUserService couponUserService;
     private final OrderAssembler orderAssembler;
+    private final OrderNumbers orderNumbers;
+    private final ApplicationEventPublisher eventPublisher;
 
     public OrderService(OrderRepository orderRepository,
                         OrderItemRepository orderItemRepository,
@@ -72,7 +73,9 @@ public class OrderService {
                         UserCouponRepository userCouponRepository,
                         CouponRepository couponRepository,
                         CouponUserService couponUserService,
-                        OrderAssembler orderAssembler) {
+                        OrderAssembler orderAssembler,
+                        OrderNumbers orderNumbers,
+                        ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.refundRequestRepository = refundRequestRepository;
@@ -82,6 +85,8 @@ public class OrderService {
         this.couponRepository = couponRepository;
         this.couponUserService = couponUserService;
         this.orderAssembler = orderAssembler;
+        this.orderNumbers = orderNumbers;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -107,7 +112,7 @@ public class OrderService {
         Quote quote = quote(courses, total, request.userCouponId(), userId, true);
 
         Order order = new Order();
-        order.setOrderNo(nextOrderNo());
+        order.setOrderNo(orderNumbers.next());
         order.setUserId(userId);
         order.setTotalAmount(total);
         order.setDiscountAmount(quote.discount());
@@ -171,6 +176,7 @@ public class OrderService {
         order.setCanceledAt(LocalDateTime.now(ZoneOffset.UTC));
         order = orderRepository.save(order);
         couponUserService.releaseForOrder(order);
+        eventPublisher.publishEvent(new OrderCanceledEvent(order.getOrderNo()));
         return orderAssembler.toDto(order);
     }
 
@@ -294,17 +300,6 @@ public class OrderService {
                 .map(course -> new OrderItemDto(null, course.getId(), course.getTitle(), course.getCoverUrl(),
                         course.getSubject(), course.getPrice()))
                 .toList();
-    }
-
-    private String nextOrderNo() {
-        String base = "SL" + LocalDateTime.now(ZoneOffset.UTC).format(ORDER_NO_TIME);
-        for (int i = 0; i < 5; i++) {
-            String candidate = base + String.format("%06d", ThreadLocalRandom.current().nextInt(1_000_000));
-            if (!orderRepository.existsByOrderNo(candidate)) {
-                return candidate;
-            }
-        }
-        throw new BusinessException(ErrorCode.INTERNAL_ERROR);
     }
 
     private Long requireUserId() {

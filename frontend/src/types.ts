@@ -351,3 +351,67 @@ export interface PurchaseStatus {
   pendingOrderNo?: string | null
   paidOrderNo?: string | null
 }
+
+export interface SeckillActivity {
+  id: number
+  courseId: number
+  courseTitle: string
+  courseCover?: string | null
+  coursePrice: number
+  seckillPrice: number
+  totalStock: number
+  availableStock: number
+  redisStock?: number | null
+  soldCount: number
+  perUserLimit: number
+  startAt: string
+  endAt: string
+  status: string
+  phase: string
+  createdAt?: string | null
+}
+
+export interface PublicSeckill {
+  id: number
+  courseId: number
+  courseTitle: string
+  courseSubtitle?: string | null
+  courseCover?: string | null
+  subject?: string | null
+  coursePrice: number
+  seckillPrice: number
+  totalStock: number
+  remainingStock: number
+  soldCount: number
+  perUserLimit: number
+  startAt: string
+  endAt: string
+  phase: string
+  serverTime: string
+}
+
+export interface SeckillClaimResult {
+  activityId: number
+  status: string
+  message: string
+  serverTime: string
+}
+
+export interface SeckillResult {
+  activityId: number
+  status: string
+  orderNo?: string | null
+  reason?: string | null
+  phase: string
+  serverTime: string
+}
+
+export interface SeckillRecord {
+  id: number
+  userId: number
+  userAccount?: string | null
+  orderNo?: string | null
+  status: string
+  reason?: string | null
+  createdAt?: string | null
+}

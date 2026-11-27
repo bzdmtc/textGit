@@ -6,9 +6,11 @@ import com.example.smart_learning.coupon.repository.UserCouponRepository;
 import com.example.smart_learning.coupon.service.CouponUserService;
 import com.example.smart_learning.order.domain.OrderStateMachine;
 import com.example.smart_learning.order.entity.Order;
+import com.example.smart_learning.order.event.OrderCanceledEvent;
 import com.example.smart_learning.order.repository.OrderRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +31,16 @@ public class TradeSweepService {
     private final OrderRepository orderRepository;
     private final UserCouponRepository userCouponRepository;
     private final CouponUserService couponUserService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TradeSweepService(OrderRepository orderRepository,
                              UserCouponRepository userCouponRepository,
-                             CouponUserService couponUserService) {
+                             CouponUserService couponUserService,
+                             ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.userCouponRepository = userCouponRepository;
         this.couponUserService = couponUserService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -59,6 +64,7 @@ public class TradeSweepService {
             order.setCanceledAt(now);
             orderRepository.save(order);
             couponUserService.releaseForOrder(order);
+            eventPublisher.publishEvent(new OrderCanceledEvent(order.getOrderNo()));
             count++;
         }
         return count;

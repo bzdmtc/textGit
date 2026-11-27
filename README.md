@@ -1,6 +1,6 @@
 # 智学考研 · 基础版
 
-仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容** 和 **模块 3：交易**，后续模块按「秒杀 → 学习 → 题库 → 院校看板」逐个实现。
+仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易** 和 **模块 4：秒杀**，后续模块按「学习 → 题库 → 院校看板」逐个实现。
 
 ## 当前已实现
 
@@ -25,14 +25,19 @@
   - 售后退款：学员申请 → 管理员审核（通过/驳回）、退款流水、订单状态机集中校验
   - 个人中心：我的订单、我的优惠券、我的课程；后台：订单管理、退款审核、优惠券管理
   - 定时任务：超时关单、优惠券过期、支付满 7 天自动完成
-- 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券
-- Flyway 迁移与种子数据（V1–V9）
+- **秒杀模块**：
+  - 后台活动管理：选课程、秒杀价、总名额、活动时段、上下线、抢购记录、库存对账
+  - Redis 库存预热 + Lua 原子扣减（时间校验/库存/限购一次完成），活动列表展示实时剩余名额
+  - Kafka `seckill-order` 异步建单（key=活动 ID 有序、手动 ack、重试 3 次进死信队列），前端轮询排队结果
+  - 秒杀订单 15 分钟支付窗口；超时/取消回补 DB 与 Redis 库存；`seckill_record` 唯一约束防重复下单
+- 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券、秒杀
+- Flyway 迁移与种子数据（V1–V11）
 
 ## 技术栈
 
 - 后端：Spring Boot 4.2.0、Java 17、Spring Security 7、Spring Data JPA、Flyway、SQL Server 2025
 - 前端：Vue 3、Vite、TypeScript、Element Plus、Pinia、Vue Router、Axios
-- 中间件：Redis（验证码/限流）、Kafka（后续秒杀模块使用，本模块提供生产者冒烟接口）
+- 中间件：Redis（验证码/限流/秒杀库存）、Kafka（秒杀异步建单与死信队列）
 
 > 时间约定：数据库 `DATETIME2` 统一存 UTC，Java 使用 `LocalDateTime.now(ZoneOffset.UTC)`；不使用 `hibernate.jdbc.time_zone`，避免 `LocalDateTime` 被二次时区换算导致 SQL 时间比较错位。前端展示时统一转为本地时间。
 
@@ -92,7 +97,7 @@ sqlcmd -S localhost -E -C -i scripts/init-databases.sql \
   -v MASTER_PASSWORD="<MASTER_DB_PASSWORD>" READ_PASSWORD="<READ_DB_PASSWORD>"
 ```
 
-首次启动时 Flyway 只对主库执行迁移（当前 V1–V9）。开发环境可把主库备份还原到从库：
+首次启动时 Flyway 只对主库执行迁移（当前 V1–V11）。开发环境可把主库备份还原到从库：
 
 ```bash
 sqlcmd -S localhost -E -C -Q "BACKUP DATABASE smart_learning TO DISK=N'C:\temp\smart_learning.bak' WITH INIT"
@@ -102,6 +107,12 @@ sqlcmd -S localhost -E -C -Q "RESTORE DATABASE smart_learning_read FROM DISK=N'C
 生产环境请使用 SQL Server Always On 只读副本或事务复制，详见 `docs/read-write-splitting.md`。
 
 ## 启动
+
+秒杀需要 Kafka；首次使用先启动中间件：
+
+```bash
+docker compose up -d kafka
+```
 
 后端：
 
@@ -145,13 +156,30 @@ npm run dev
 自动化验收脚本（API/UI 冒烟会创建订单，建议先重置交易数据）：
 
 ```bash
-sqlcmd -S localhost -C -E -d smart_learning -i scripts/reset-trade-data.sql
+sqlcmd -S localhost -C -E -b -I -f 65001 -d smart_learning -i scripts/reset-trade-data.sql
 node scripts/trade-smoke.mjs              # 交易 API 全链路（领券→下单→支付→退款→审核）
 node scripts/trade-scheduler-test.mjs     # 超时关单 + 优惠券释放/过期
 node frontend/scripts/trade-ui-smoke.cjs  # 浏览器 UI 全链路（需前后端已启动）
 ```
 
 `reset-trade-data.sql` 会清空订单/退款/支付/选课/用户优惠券并恢复优惠券库存与课程学习人数，不影响课程与用户数据。注意：主从库同步后需重新执行 `scripts/sync-read-db.sql` 才能让前台只读数据同步。
+
+## 秒杀演示流程
+
+1. `admin` 登录后台 → 秒杀活动 → 新增/编辑活动（课程、秒杀价、名额、时段），保存后自动预热 Redis。
+2. 前台「秒杀专区」查看倒计时与剩余名额；`student` 登录后点「立即抢购」。
+3. 后端 Lua 原子预扣库存 → 发送 Kafka 消息 → 消费者建单 → 页面每秒轮询结果，成功后跳转模拟收银台。
+4. 15 分钟内支付 → 开通课程、秒杀记录变为 `PAID`；不支付则超时关单并回补库存，名额重新可抢。
+5. 后台「抢购记录」查看每人状态；「对账」按有效记录重算 DB 库存并覆盖 Redis。
+
+```bash
+node scripts/seckill-smoke.mjs        # 创建活动 → 抢购 → 建单 → 支付 → 记录 PAID
+node scripts/seckill-concurrency.mjs  # 20 用户 × 10 并发抢 10 个名额，断言不超卖、不重复
+# 清理冒烟产生的秒杀订单/记录/临时用户并回补库存（保留 V11 演示活动）
+sqlcmd -S localhost -C -E -b -I -f 65001 -d smart_learning -i scripts/reset-seckill-data.sql
+```
+
+秒杀设计细节（Redis 键、Lua 返回码、Kafka 重试/死信、对账口径）见 [docs/seckill.md](docs/seckill.md)。
 
 ## 核心接口
 
@@ -188,6 +216,10 @@ node frontend/scripts/trade-ui-smoke.cjs  # 浏览器 UI 全链路（需前后�
 | GET | `/api/v1/payments/channels`、POST `/payments/{orderNo}/pay` | 支付渠道 / 模拟支付 |
 | GET | `/api/v1/admin/orders`、`/admin/refunds` | 后台订单 / 退款审核 |
 | GET/POST/PUT | `/api/v1/admin/coupons*` | 后台优惠券管理 |
+| GET | `/api/v1/seckill/activities` | 秒杀专区列表（公开） |
+| POST | `/api/v1/seckill/activities/{id}/claim` | 抢购（Redis 预扣 + Kafka 入队） |
+| GET | `/api/v1/seckill/activities/{id}/result` | 轮询抢购/建单结果 |
+| GET/POST/PUT/DELETE | `/api/v1/admin/seckill/activities...` | 后台秒杀活动、抢购记录、库存对账 |
 | GET | `/api/v1/system/route-check/read` | 验证读路由（`smart_learning_read`） |
 | GET | `/api/v1/system/route-check/master` | 验证写路由（`smart_learning`） |
 | POST | `/api/v1/system/kafka-check` | Kafka 生产者冒烟（发送 `system-check`） |
@@ -198,8 +230,9 @@ node frontend/scripts/trade-ui-smoke.cjs  # 浏览器 UI 全链路（需前后�
 
 - 权限模型：[docs/permission.md](docs/permission.md)
 - 读写分离：[docs/read-write-splitting.md](docs/read-write-splitting.md)
+- 秒杀设计：[docs/seckill.md](docs/seckill.md)
 - 2026-11-25 会话记录：[docs/chat-history-2026-11-25.md](docs/chat-history-2026-11-25.md)
 
 ## 后续模块
 
-秒杀（Redis + Kafka）、学习、题库考试、院校与看板、实时聊天、Elasticsearch 等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。
+学习（播放器/进度/笔记/评价）、题库考试、院校与看板、实时聊天、Elasticsearch 等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。
