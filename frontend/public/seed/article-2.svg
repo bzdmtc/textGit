@@ -1,13 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="320" viewBox="0 0 600 320">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1d4ed8"/>
-      <stop offset="100%" stop-color="#38bdf8"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="60%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
     </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.15" r="0.85">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#ffffff" fill-opacity="0.16"/>
+    </pattern>
   </defs>
-  <rect width="600" height="320" rx="18" fill="url(#g)"/>
-  <circle cx="510" cy="58" r="90" fill="rgba(255,255,255,0.16)"/>
-  <circle cx="72" cy="288" r="96" fill="rgba(255,255,255,0.10)"/>
-  <text x="36" y="160" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="33" font-weight="700">英语阅读提分</text>
-  <text x="36" y="188" fill="rgba(255,255,255,0.88)" font-family="Microsoft YaHei, sans-serif" font-size="14">三个关键习惯</text>
+  <rect width="600" height="320" fill="url(#bg)"/>
+  <rect width="600" height="320" fill="url(#glow)"/>
+  <rect x="290" y="30" width="290" height="280" fill="url(#dots)"/>
+  <g fill="#ffffff" fill-opacity="0.1">
+    <rect x="408" y="70" width="132" height="176" rx="16" transform="rotate(10 474 158)"/>
+    <rect x="436" y="58" width="132" height="176" rx="16" transform="rotate(-4 502 146)"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.2">
+    <circle cx="122" cy="248" r="66" stroke-width="1.5"/>
+    <circle cx="122" cy="248" r="104" stroke-opacity="0.1"/>
+  </g>
+  <path d="M-20 84 H190" stroke="#ffffff" stroke-opacity="0.16" stroke-width="2"/>
 </svg>

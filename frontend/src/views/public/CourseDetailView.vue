@@ -176,6 +176,10 @@ onMounted(load)
   <div v-loading="loading" class="detail-page">
     <template v-if="detail">
       <div class="detail-hero">
+        <div
+          class="hero-bg"
+          :style="detail.course.coverUrl ? { backgroundImage: `url(${detail.course.coverUrl})` } : undefined"
+        ></div>
         <div class="hero-inner">
           <div
             class="hero-cover"
@@ -363,13 +367,36 @@ onMounted(load)
 }
 
 .detail-hero {
-  background: #111827;
+  position: relative;
+  background: #0f172a;
   border-radius: 18px;
   color: #fff;
   overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.hero-bg {
+  position: absolute;
+  inset: -25%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(52px) saturate(1.25);
+  opacity: 0.34;
+  transform: scale(1.1);
+  pointer-events: none;
+}
+
+.detail-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.82) 0%, rgba(15, 23, 42, 0.55) 55%, rgba(15, 23, 42, 0.4) 100%);
+  pointer-events: none;
 }
 
 .hero-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 28px;
   padding: 28px;
@@ -380,9 +407,10 @@ onMounted(load)
   height: 220px;
   border-radius: 12px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #e60012, #ff7a00);
+  background: linear-gradient(135deg, var(--brand), var(--accent));
   background-size: cover;
   background-position: center;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
 }
 
 .hero-info {

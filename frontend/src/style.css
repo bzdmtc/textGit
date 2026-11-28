@@ -141,6 +141,29 @@ img {
   font-size: 13px;
 }
 
+/* 前台列表页统一标题样式 */
+.page-head h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text-strong);
+}
+
+.page-head h1::before {
+  content: "";
+  width: 5px;
+  height: 0.82em;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--brand), var(--accent));
+  flex-shrink: 0;
+}
+
+.page-head p {
+  color: var(--text-muted);
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

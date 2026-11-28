@@ -1,13 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="340" viewBox="0 0 600 340">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#e60012"/>
-      <stop offset="100%" stop-color="#ff7a00"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8f0a14"/>
+      <stop offset="55%" stop-color="#e60012"/>
+      <stop offset="100%" stop-color="#fb7a2e"/>
     </linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.18" r="0.8">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.08" cy="0.95" r="0.65">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(24)">
+      <path d="M36 0H0V36" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
   </defs>
-  <rect width="600" height="340" rx="18" fill="url(#g)"/>
-  <circle cx="510" cy="61" r="95" fill="rgba(255,255,255,0.16)"/>
-  <circle cx="72" cy="306" r="102" fill="rgba(255,255,255,0.10)"/>
-  <text x="36" y="170" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="33" font-weight="700">考研政治强化</text>
-  <text x="36" y="198" fill="rgba(255,255,255,0.88)" font-family="Microsoft YaHei, sans-serif" font-size="14">框架梳理 · 主观题模板</text>
+  <rect width="600" height="340" fill="url(#bg)"/>
+  <rect width="600" height="340" fill="url(#grid)"/>
+  <rect width="600" height="340" fill="url(#glow)"/>
+  <rect width="600" height="340" fill="url(#glow2)"/>
+  <g fill="none" stroke="#ffffff">
+    <circle cx="502" cy="76" r="84" stroke-opacity="0.22" stroke-width="1.5"/>
+    <circle cx="502" cy="76" r="126" stroke-opacity="0.1"/>
+  </g>
+  <path d="M-30 302 C 120 246 240 342 380 282 S 560 246 660 300" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/>
+  <path d="M470 0 L600 0 L600 132 Z" fill="#ffffff" fill-opacity="0.06"/>
+  <path d="M500 138 L514.6 180.6 L559 181 L524.4 206.4 L535.6 247.4 L500 224.1 L464.4 247.4 L475.6 206.4 L441 181 L485.4 180.6 Z" fill="#ffffff" fill-opacity="0.13" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" stroke-linejoin="round"/>
+  <g fill="#ffffff" fill-opacity="0.4">
+    <circle cx="94" cy="62" r="3"/>
+    <circle cx="124" cy="46" r="2"/>
+    <circle cx="452" cy="272" r="3"/>
+  </g>
 </svg>

@@ -1,13 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="340" viewBox="0 0 600 340">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1d4ed8"/>
-      <stop offset="100%" stop-color="#06b6d4"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="55%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
     </linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.18" r="0.8">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.08" cy="0.95" r="0.65">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(24)">
+      <path d="M36 0H0V36" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
   </defs>
-  <rect width="600" height="340" rx="18" fill="url(#g)"/>
-  <circle cx="510" cy="61" r="95" fill="rgba(255,255,255,0.16)"/>
-  <circle cx="72" cy="306" r="102" fill="rgba(255,255,255,0.10)"/>
-  <text x="36" y="170" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="33" font-weight="700">考研英语一</text>
-  <text x="36" y="198" fill="rgba(255,255,255,0.88)" font-family="Microsoft YaHei, sans-serif" font-size="14">词汇 · 长难句 · 阅读</text>
+  <rect width="600" height="340" fill="url(#bg)"/>
+  <rect width="600" height="340" fill="url(#grid)"/>
+  <rect width="600" height="340" fill="url(#glow)"/>
+  <rect width="600" height="340" fill="url(#glow2)"/>
+  <g fill="none" stroke="#ffffff">
+    <circle cx="502" cy="76" r="84" stroke-opacity="0.22" stroke-width="1.5"/>
+    <circle cx="502" cy="76" r="126" stroke-opacity="0.1"/>
+  </g>
+  <path d="M-30 302 C 120 246 240 342 380 282 S 560 246 660 300" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/>
+  <path d="M470 0 L600 0 L600 132 Z" fill="#ffffff" fill-opacity="0.06"/>
+  <path d="M430 134 h150 a26 26 0 0 1 26 26 v72 a26 26 0 0 1 -26 26 h-72 l-38 32 v-32 h-40 a26 26 0 0 1 -26 -26 v-72 a26 26 0 0 1 26 -26z" fill="#ffffff" fill-opacity="0.11" stroke="#ffffff" stroke-opacity="0.24" stroke-width="2"/>
+  <g stroke="#ffffff" stroke-opacity="0.34" stroke-width="4" stroke-linecap="round">
+    <path d="M440 182 H566"/>
+    <path d="M440 208 H530"/>
+    <path d="M440 234 H496"/>
+  </g>
+  <g fill="#ffffff" fill-opacity="0.4">
+    <circle cx="94" cy="62" r="3"/>
+    <circle cx="124" cy="46" r="2"/>
+    <circle cx="452" cy="272" r="3"/>
+  </g>
 </svg>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Download, Reading, School, VideoPlay } from '@element-plus/icons-vue'
 import { publicApi } from '@/api/public'
 import type { HomeData } from '@/types'
 import CourseCard from '@/components/CourseCard.vue'
@@ -30,6 +31,17 @@ function search() {
   router.push({ path: '/courses', query: { keyword: keyword.value || undefined } })
 }
 
+function go(url?: string) {
+  if (url) router.push(url)
+}
+
+const features = [
+  { icon: VideoPlay, title: '名师主讲', desc: '阶段清晰 · 讲练结合', path: '/courses' },
+  { icon: Reading, title: '智能题库', desc: '章节练习 · 模拟考试', path: '/practice' },
+  { icon: School, title: '院校数据', desc: '专业目录 · 复试线', path: '/universities' },
+  { icon: Download, title: '资料下载', desc: '公式手册 · 高频词汇', path: '/materials' },
+]
+
 onMounted(load)
 </script>
 
@@ -47,7 +59,14 @@ onMounted(load)
               <div class="banner-kicker">智学考研 · 2027 备考季</div>
               <h1>{{ banner.title }}</h1>
               <p>基础、强化、冲刺阶段课程，配套题库与院校数据。</p>
-              <el-button type="primary" size="large" round>查看课程</el-button>
+              <div class="banner-actions">
+                <el-button type="primary" size="large" round @click.stop="go(banner.linkUrl || '/courses')">
+                  查看课程
+                </el-button>
+                <el-button size="large" round class="banner-ghost" @click.stop="router.push('/practice')">
+                  免费试练
+                </el-button>
+              </div>
             </div>
           </div>
         </el-carousel-item>
@@ -57,6 +76,14 @@ onMounted(load)
               <div class="banner-kicker">智学考研 · 2027 备考季</div>
               <h1>一站式考研备考平台</h1>
               <p>课程、题库、院校、资料，陪你走到上岸。</p>
+              <div class="banner-actions">
+                <el-button type="primary" size="large" round @click.stop="router.push('/courses')">
+                  查看课程
+                </el-button>
+                <el-button size="large" round class="banner-ghost" @click.stop="router.push('/practice')">
+                  免费试练
+                </el-button>
+              </div>
             </div>
           </div>
         </el-carousel-item>
@@ -64,20 +91,34 @@ onMounted(load)
     </section>
 
     <section class="search-band">
-      <div class="search-inner">
-        <div>
-          <h2>找到适合你的考研课程</h2>
-          <p>政治 / 英语 / 数学 / 专业课，按阶段精准匹配</p>
+      <div class="quick-card">
+        <div class="search-inner">
+          <div>
+            <h2>找到适合你的考研课程</h2>
+            <p>政治 / 英语 / 数学 / 专业课，按阶段精准匹配</p>
+          </div>
+          <div class="search-box">
+            <el-input
+              v-model="keyword"
+              size="large"
+              placeholder="搜索课程，如：政治 强化"
+              clearable
+              @keyup.enter="search"
+            />
+            <el-button type="primary" size="large" @click="search">搜索</el-button>
+          </div>
         </div>
-        <div class="search-box">
-          <el-input
-            v-model="keyword"
-            size="large"
-            placeholder="搜索课程，如：政治 强化"
-            clearable
-            @keyup.enter="search"
-          />
-          <el-button type="primary" size="large" @click="search">搜索</el-button>
+
+        <div class="feature-row">
+          <router-link v-for="item in features" :key="item.path" :to="item.path" class="feature-item">
+            <span class="feature-icon">
+              <el-icon><component :is="item.icon" /></el-icon>
+            </span>
+            <span class="feature-text">
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.desc }}</small>
+            </span>
+          </router-link>
         </div>
       </div>
     </section>
@@ -233,8 +274,46 @@ onMounted(load)
   margin: 0 0 24px;
 }
 
-.banner-content :deep(.el-button) {
+.banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero :deep(.el-carousel__indicators--horizontal) {
+  bottom: 16px;
+}
+
+.hero :deep(.el-carousel__indicator .el-carousel__button) {
+  width: 26px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  transition:
+    width 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.hero :deep(.el-carousel__indicator.is-active .el-carousel__button) {
+  width: 36px;
+  background: #fff;
+}
+
+.banner-content :deep(.el-button--primary) {
   box-shadow: 0 10px 22px rgba(230, 0, 18, 0.3);
+}
+
+.banner-ghost {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: rgba(255, 255, 255, 0.45);
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: rgba(255, 255, 255, 0.16);
+  --el-button-hover-border-color: rgba(255, 255, 255, 0.85);
+  --el-button-hover-text-color: #fff;
+  --el-button-active-bg-color: rgba(255, 255, 255, 0.22);
+  --el-button-active-border-color: #fff;
+  backdrop-filter: blur(4px);
 }
 
 .search-band {
@@ -243,16 +322,87 @@ onMounted(load)
   padding: 0 24px;
 }
 
-.search-inner {
+.quick-card {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.search-inner {
   padding: 22px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  box-shadow: var(--shadow-sm);
+}
+
+.feature-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, #fff, #fbfcfe);
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 22px;
+  border-left: 1px solid var(--line);
+  transition: background-color 0.18s ease;
+}
+
+.feature-item:first-child {
+  border-left: none;
+}
+
+.feature-item:hover {
+  background: var(--brand-soft);
+}
+
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 20px;
+  flex-shrink: 0;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.feature-item:hover .feature-icon {
+  background: var(--brand);
+  color: #fff;
+}
+
+.feature-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+.feature-text strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.feature-text small {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .search-inner h2 {
@@ -538,6 +688,22 @@ onMounted(load)
 
   .search-box {
     width: 380px;
+  }
+
+  .feature-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .feature-item {
+    border-top: 1px solid var(--line);
+  }
+
+  .feature-item:nth-child(-n + 2) {
+    border-top: none;
+  }
+
+  .feature-item:nth-child(odd) {
+    border-left: none;
   }
 }
 </style>
