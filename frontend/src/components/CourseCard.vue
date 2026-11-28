@@ -34,26 +34,38 @@ function teacherNames(course: Course) {
 
 <style scoped>
 .course-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: #fff;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid #eef0f4;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .course-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+  border-color: var(--brand-line);
+  box-shadow: var(--shadow-md);
 }
 
 .course-cover {
   height: 160px;
-  background: linear-gradient(135deg, #e60012, #ff7a00);
+  background: linear-gradient(135deg, var(--brand), var(--accent));
   background-size: cover;
   background-position: center;
   position: relative;
+  overflow: hidden;
+  transition: transform 0.4s ease;
+}
+
+.course-card:hover .course-cover {
+  transform: scale(1.04);
 }
 
 .course-stage {
@@ -63,16 +75,21 @@ function teacherNames(course: Course) {
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 12px;
+  font-weight: 500;
   color: #fff;
   background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(6px);
 }
 
 .course-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   padding: 16px;
 }
 
 .course-subject {
-  color: #e60012;
+  color: var(--brand);
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 6px;
@@ -80,15 +97,20 @@ function teacherNames(course: Course) {
 
 h3 {
   margin: 0 0 8px;
-  font-size: 16px;
-  color: #111827;
-  line-height: 1.4;
   min-height: 44px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-strong);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 p {
   margin: 0 0 10px;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -97,7 +119,7 @@ p {
 
 .course-teacher {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-faint);
   margin-bottom: 14px;
 }
 
@@ -105,21 +127,26 @@ p {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
 }
 
 .price strong {
-  color: #e60012;
-  font-size: 20px;
+  color: var(--brand);
+  font-size: 21px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .price del {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 12px;
   margin-left: 6px;
 }
 
 .students {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 12px;
+  white-space: nowrap;
 }
 </style>

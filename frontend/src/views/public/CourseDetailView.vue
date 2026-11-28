@@ -318,24 +318,26 @@ onMounted(load)
                 <span class="coupon-count">{{ coupons.length }} 张</span>
               </div>
               <div v-for="coupon in coupons" :key="coupon.id" class="coupon-item">
-                <div class="coupon-value">
-                  <strong>{{ couponValueText(coupon.type, coupon.value) }}</strong>
-                  <span>{{ couponRuleText(coupon.type, coupon.minAmount) }}</span>
+                <div class="coupon-head">
+                  <span class="coupon-name">{{ coupon.name }}</span>
+                  <span class="coupon-value">{{ couponValueText(coupon.type, coupon.value) }}</span>
                 </div>
-                <div class="coupon-info">
-                  <div class="coupon-name">{{ coupon.name }}</div>
-                  <div class="coupon-validity">{{ coupon.subject || '全站通用' }} · 至 {{ formatDate(coupon.endAt) }}</div>
+                <div class="coupon-foot">
+                  <span class="coupon-validity">
+                    {{ couponRuleText(coupon.type, coupon.minAmount) }} · 至 {{ formatDate(coupon.endAt) }}
+                  </span>
+                  <el-button
+                    size="small"
+                    type="danger"
+                    plain
+                    class="coupon-claim"
+                    :disabled="Boolean(myCoupon(coupon.id))"
+                    :loading="claimingId === coupon.id"
+                    @click="claim(coupon)"
+                  >
+                    {{ claimLabel(coupon) }}
+                  </el-button>
                 </div>
-                <el-button
-                  size="small"
-                  type="danger"
-                  plain
-                  :disabled="Boolean(myCoupon(coupon.id))"
-                  :loading="claimingId === coupon.id"
-                  @click="claim(coupon)"
-                >
-                  {{ claimLabel(coupon) }}
-                </el-button>
               </div>
               <div v-if="!coupons.length" class="coupon-empty">暂无可领取的优惠券</div>
             </div>
@@ -579,52 +581,64 @@ onMounted(load)
 }
 
 .coupon-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 0;
-  border-bottom: 1px dashed #f3f4f6;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
 }
 
 .coupon-item:last-child {
   border-bottom: none;
 }
 
-.coupon-value {
+.coupon-head {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 66px;
-  color: #e60012;
-}
-
-.coupon-value strong {
-  font-size: 16px;
-}
-
-.coupon-value span {
-  font-size: 10px;
-  color: #9ca3af;
-}
-
-.coupon-info {
-  flex: 1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .coupon-name {
-  font-size: 12px;
-  color: #374151;
+  min-width: 0;
+  font-size: 12.5px;
   font-weight: 600;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coupon-value {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.coupon-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 3px;
 }
 
 .coupon-validity {
+  min-width: 0;
   font-size: 11px;
-  color: #9ca3af;
-  margin-top: 2px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coupon-claim {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 .coupon-empty {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 12px;
 }
 

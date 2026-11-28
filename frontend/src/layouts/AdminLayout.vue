@@ -95,15 +95,17 @@ async function handleCommand(command: string) {
         </el-menu-item>
       </el-menu>
       <div class="aside-footer">
-        <div class="muted" style="color: #94a3b8">基础版 · 模块 7：院校与看板</div>
+        <div class="aside-footer-line">Spring Boot 4.2 · Vue 3</div>
+        <div class="aside-footer-line">基础版 · 模块 7：院校与看板</div>
       </div>
     </el-aside>
 
     <el-container>
       <el-header class="admin-header">
-        <div>
-          <div class="header-title">{{ currentTitle }}</div>
-          <div class="muted">Spring Boot 4.2 · 禅道式权限 · 主从读写分离</div>
+        <div class="header-crumb">
+          <span class="crumb-root">管理后台</span>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current">{{ currentTitle }}</span>
         </div>
         <div class="header-actions">
           <router-link to="/" class="front-link">返回前台</router-link>
@@ -137,13 +139,13 @@ async function handleCommand(command: string) {
 
 <style scoped>
 .admin-aside {
-  background: #111827;
+  background: #0f172a;
   display: flex;
   flex-direction: column;
 }
 
 .brand {
-  height: 76px;
+  height: 68px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -155,13 +157,14 @@ async function handleCommand(command: string) {
 .brand-mark {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #e60012, #ff7a00);
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 18px;
+  box-shadow: 0 6px 14px rgba(230, 0, 18, 0.3);
 }
 
 .brand-title {
@@ -173,7 +176,7 @@ async function handleCommand(command: string) {
 .brand-sub {
   font-size: 11px;
   color: #94a3b8;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .admin-menu {
@@ -181,84 +184,159 @@ async function handleCommand(command: string) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 8px;
+  padding: 12px;
+}
+
+.admin-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  background-clip: content-box;
 }
 
 .admin-menu :deep(.el-menu-item) {
+  height: 42px;
+  line-height: 42px;
   border-radius: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  font-size: 13.5px;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.admin-menu :deep(.el-menu-item .el-icon) {
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+.admin-menu :deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
 }
 
 .admin-menu :deep(.el-menu-item.is-active) {
-  background: #e60012;
+  background: linear-gradient(90deg, #e60012, #c90010);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 8px 18px rgba(230, 0, 18, 0.28);
+}
+
+.admin-menu :deep(.el-menu-item.is-active .el-icon) {
+  color: #fff;
 }
 
 .aside-footer {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.aside-footer-line {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #64748b;
+}
+
 .admin-header {
-  height: 76px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
 }
 
-.header-title {
-  font-size: 18px;
+.header-crumb {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.crumb-root {
+  color: var(--text-faint);
+}
+
+.crumb-sep {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.crumb-current {
+  font-size: 15px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-strong);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
 }
 
 .front-link {
-  padding: 7px 14px;
+  padding: 6px 14px;
   border-radius: 8px;
-  border: 1px solid #f7b3b8;
-  background: #fce6e8;
-  color: #e60012;
+  border: 1px solid var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--brand);
   font-size: 13px;
-  transition: background 0.2s, border-color 0.2s;
+  font-weight: 500;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .front-link:hover {
-  background: #f9ccd0;
-  border-color: #f28088;
+  background: #fce6e8;
+  border-color: #ee4d58;
 }
 
 .logout-link {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .logout-link:hover {
-  color: #dc3c3d;
+  color: var(--brand);
+  background: var(--brand-soft);
 }
 
 .user-chip {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 5px 10px 5px 6px;
+  border-radius: 10px;
   cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.user-chip:hover {
+  background: #f8fafc;
+}
+
+.user-chip :deep(.el-avatar) {
+  flex-shrink: 0;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(230, 0, 18, 0.24);
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-strong);
+}
+
+.user-chip .muted {
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .admin-main {
   padding: 24px;
-  background: #f5f6f8;
+  background: var(--bg-page);
   overflow-y: auto;
 }
 </style>

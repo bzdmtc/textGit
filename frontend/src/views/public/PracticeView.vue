@@ -234,6 +234,7 @@ onMounted(load)
               <el-button
                 type="danger"
                 plain
+                class="paper-start"
                 :loading="startingPaper === paper.id"
                 @click="startPaper(paper)"
               >
@@ -373,20 +374,22 @@ onMounted(load)
 
 .practice-body {
   max-width: 1180px;
-  margin: -36px auto 0;
+  margin: 28px auto 0;
   padding: 0 24px 56px;
 }
 
 .practice-grid {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 340px minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
 
 .practice-card {
+  margin-top: -56px;
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border-color: var(--line);
+  box-shadow: var(--shadow-md);
 }
 
 .card-title {
@@ -452,15 +455,26 @@ onMounted(load)
 }
 
 .papers-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   font-size: 22px;
-  color: #111827;
+  color: var(--text-strong);
+}
+
+.papers-head h2::before {
+  content: "";
+  width: 4px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--brand), var(--accent));
 }
 
 .papers-head p {
   margin: 6px 0 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .paper-grid {
@@ -471,12 +485,23 @@ onMounted(load)
 
 .paper-card {
   background: #fff;
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-xs);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.paper-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--brand-line);
+  box-shadow: var(--shadow-md);
 }
 
 .paper-top {
@@ -511,7 +536,12 @@ onMounted(load)
   display: flex;
   gap: 14px;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-faint);
+}
+
+.paper-start {
+  width: 100%;
+  margin-top: auto;
 }
 
 .history-card {
