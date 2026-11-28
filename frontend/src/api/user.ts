@@ -1,5 +1,5 @@
 import http from './http'
-import type { ApiResponse, AuditLog, PageResult, User, UserPermissionView } from '@/types'
+import type { ApiResponse, AuditLog, PageResult, User, UserActivity, UserPermissionView } from '@/types'
 
 export interface UserCreatePayload {
   account: string
@@ -22,11 +22,30 @@ export interface UserUpdatePayload {
   groupIds?: number[]
 }
 
+export interface UserPageParams {
+  keyword?: string
+  status?: string
+  position?: string
+  page: number
+  size: number
+}
+
+export interface AuditLogParams {
+  targetType?: string
+  action?: string
+  userId?: number
+  from?: string
+  to?: string
+  page: number
+  size: number
+}
+
 export const userApi = {
-  page(keyword: string, page: number, size: number) {
-    return http.get<ApiResponse<PageResult<User>>>('/admin/users', {
-      params: { keyword: keyword || undefined, page, size },
-    })
+  page(params: UserPageParams) {
+    return http.get<ApiResponse<PageResult<User>>>('/admin/users', { params })
+  },
+  get(userId: number) {
+    return http.get<ApiResponse<User>>(`/admin/users/${userId}`)
   },
   create(payload: UserCreatePayload) {
     return http.post<ApiResponse<User>>('/admin/users', payload)
@@ -43,9 +62,13 @@ export const userApi = {
   permissions(userId: number) {
     return http.get<ApiResponse<UserPermissionView>>(`/admin/users/${userId}/permissions`)
   },
-  auditLogs(targetType: string, page: number, size: number) {
-    return http.get<ApiResponse<PageResult<AuditLog>>>('/admin/audit-logs', {
-      params: { targetType: targetType || undefined, page, size },
-    })
+  activity(userId: number) {
+    return http.get<ApiResponse<UserActivity>>(`/admin/users/${userId}/activity`)
+  },
+  auditLogs(params: AuditLogParams) {
+    return http.get<ApiResponse<PageResult<AuditLog>>>('/admin/audit-logs', { params })
+  },
+  auditTargetTypes() {
+    return http.get<ApiResponse<string[]>>('/admin/audit-logs/target-types')
   },
 }

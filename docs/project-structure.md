@@ -1,6 +1,6 @@
 # 项目代码地图
 
-> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀**、**模块 5：学习** 和 **模块 6：题库与考试**。
+> 本文件随模块交付持续更新。当前覆盖 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀**、**模块 5：学习**、**模块 6：题库与考试** 和 **模块 7：院校与看板**。
 
 ## 一、目录树
 
@@ -16,6 +16,7 @@ smart_learning/
 │   ├── seckill.md                         # 秒杀：Redis/Kafka/库存对账
 │   ├── learn.md                           # 学习：进度/笔记/收藏/评价审核
 │   ├── practice.md                        # 题库：判分/套卷/错题本/权限
+│   ├── university-stats.md                # 院校库、数据看板、用户活跃与审计
 │   └── chat-history-2026-11-25.md         # 本次项目会话记录
 ├── scripts/
 │   ├── init-databases.sql                 # 建库、账号、权限
@@ -134,7 +135,14 @@ frontend/
 | `security/RequiresPriv` + `PrivilegeInterceptor` | 权限 | 接口级 VIEW/ACTION 校验 | 所有 `/api/v1/admin/**` |
 | `views/admin/GroupListView.vue` | 权限 | 权限分组管理页（ID/名称/描述/用户列表/操作） | `/admin/groups`、`/api/v1/admin/groups/{id}/users` |
 | `views/admin/UserListView.vue` | 权限 | 用户与分组管理页；职位下拉联动默认分组、职位管理弹窗 | `/admin/users`、`/api/v1/admin/positions` |
-| `views/admin/AuditLogView.vue` | 权限 | 审计日志页 | `/admin/logs` |
+| `views/admin/AuditLogView.vue` | 权限 | 审计日志页（类型/动作/操作人/日期检索） | `/admin/logs`、`/api/v1/admin/audit-logs` |
+| `university/service/UniversityAdminService` | 院校 | 院校/专业/分数线/报录比 CRUD 与审计 | `/api/v1/admin/universities*`、`university*`、`score_line`、`admission_stat` |
+| `university/service/UniversityPublicService` | 院校 | 前台院校检索、详情聚合、精选 | `/api/v1/public/universities*`、首页推荐 |
+| `stats/service/StatsService` | 看板 | 成交/订单/用户/学习趋势、热销课程、订单状态 | `/api/v1/admin/stats/dashboard` |
+| `views/public/UniversityListView.vue` | 院校 | 前台院校库检索 | `/universities` |
+| `views/public/UniversityDetailView.vue` | 院校 | 院校详情、分数线走势图 | `/universities/:id` |
+| `views/admin/UniversityListView.vue` | 院校 | 后台院校管理与招生数据抽屉 | `/admin/universities` |
+| `views/admin/DashboardView.vue` | 看板 | 数据看板（KPI/趋势/热销/状态） | `/admin/dashboard` |
 | `views/LoginView.vue` | 认证 | 三种登录入口 | `/login` |
 | `layouts/AdminLayout.vue` | 系统底座 | 后端菜单驱动的后台布局 | `/me` 返回的 `menus` |
 
@@ -465,6 +473,63 @@ frontend/src/
 | `frontend/scripts/practice-ui-smoke.cjs` | 浏览器：题库首页 → 练习 → 成绩 → 错题本 → 考试 → 后台题库/试卷 |
 | `scripts/reset-practice-data.sql` | 清理练习/考试/错题与冒烟创建的题目、试卷 |
 
+## 四之五、模块 7：院校与看板代码地图
+
+### 后端新增
+
+| 路径 | 说明 |
+|---|---|
+| `university/entity/University`、`UniversityMajor`、`ScoreLine`、`AdmissionStat` | 院校/专业/分数线/报录比 |
+| `university/repository/*` | 院校检索、专业计数、按院校/专业查询 |
+| `university/service/UniversityPublicService` | 前台检索/详情/精选/筛选选项（从库只读） |
+| `university/service/UniversityAdminService` | 院校/专业/分数线/报录比 CRUD、嵌套归属校验、审计 |
+| `university/controller/UniversityPublicController` | `/api/v1/public/universities*` |
+| `university/controller/UniversityAdminController` | `/api/v1/admin/universities*` |
+| `university/dto/*` | 院校/专业/分数线/报录比 DTO 与请求 |
+| `stats/repository/StatsRepository` | 原生 SQL 聚合：订单/用户/选课/热销/状态 |
+| `stats/service/StatsService` | 北京时间日报、趋势补零、汇总计算（主库强一致） |
+| `stats/controller/StatsController` | `/api/v1/admin/stats/dashboard` |
+| `permission/repository/UserActivityRepository` | 用户订单/消费/选课/刷题/错题活跃数据 |
+| `content/dto/HomeDto` | 新增 `universities` 首页推荐字段 |
+
+### 前端新增
+
+| 文件 | 说明 |
+|---|---|
+| `views/public/UniversityListView.vue` | 院校库：地区/层次/类型筛选、卡片、分页 |
+| `views/public/UniversityDetailView.vue` | 院校详情：专业目录、分数线走势、报录比 |
+| `views/admin/UniversityListView.vue` | 后台院校管理、新增/编辑/启停用 |
+| `components/UniversityDetailDrawer.vue` | 招生数据抽屉：专业/分数线/报录比维护 |
+| `views/admin/DashboardView.vue` | 数据看板：KPI、成交/订单趋势、热销课程、订单状态 |
+| `components/EChart.vue` | ECharts 按需加载封装（Line/Bar/Grid/Tooltip） |
+| `api/university.ts`、`api/stats.ts` | 院校与看板接口 |
+| `views/admin/AuditLogView.vue` | 审计多条件检索与目标类型下拉 |
+| `views/admin/UserListView.vue` | 状态/职位筛选、注册/最近登录、活跃数据弹窗 |
+| `router/index.ts` | `/universities`、`/universities/:id`、`/admin/universities` |
+
+### 路径 ↔ 功能对照
+
+| 路径 | 模块 | 功能 |
+|---|---|---|
+| `/universities` | 院校 | 前台院校检索（省份/层次/类型/关键词） |
+| `/universities/:id` | 院校 | 详情：专业目录、分数线走势图、报录比 |
+| `/api/v1/public/universities*` | 院校 | 公开列表/选项/精选/详情，仅启用院校 |
+| `/admin/universities` | 院校 | 后台院校与招生数据（`university:browse`） |
+| `/api/v1/admin/universities*` | 院校 | 院校/专业/分数线/报录比 CRUD（create/edit/delete） |
+| `/admin/dashboard` | 看板 | 经营数据看板（`admin:access`） |
+| `/api/v1/admin/stats/dashboard` | 看板 | 汇总/趋势/热销/状态，按北京时间补零，走主库 |
+| `/api/v1/admin/users?status=&position=` | 用户 | 用户状态/职位筛选 |
+| `/api/v1/admin/users/{id}/activity` | 用户 | 订单/消费/选课/练习/错题活跃数据 |
+| `/api/v1/admin/audit-logs` | 审计 | 目标类型/动作/操作人/日期检索 |
+| `/api/v1/admin/audit-logs/target-types` | 审计 | 目标类型下拉选项 |
+
+### 自动化验收脚本
+
+| 脚本 | 说明 |
+|---|---|
+| `scripts/university-smoke.mjs` | 公开检索/详情 → 后台 CRUD/重复校验 → 停用隐藏/精选 → 看板一致性 → 用户活跃 → 审计 → 权限隔离 |
+| `scripts/reset-university-data.sql` | 清理 SMOKE 前缀院校及其专业/分数线/报录比与相关审计 |
+
 ## 五、数据库迁移对照
 
 | 脚本 | 模块 | 内容 |
@@ -488,6 +553,8 @@ frontend/src/
 | `V17__group_description_seed.sql` | 权限 | 内置分组描述（ADMIN/TEACHER/STUDENT/LIMITED） |
 | `V18__position_schema.sql` | 权限 | `sys_position`（职位字典、默认分组、状态、排序） |
 | `V19__position_seed.sql` | 权限 | 5 个演示职位映射到 ADMIN/TEACHER/STUDENT/LIMITED |
+| `V20__university_schema.sql` | 院校 | `university`、`university_major`、`score_line`、`admission_stat` 及唯一索引/外键 |
+| `V21__university_seed.sql` | 院校 | 4 个院校权限点、ADMIN 授权、10 所院校、13 个专业、2023–2025 分数线与报录比 |
 
 ## 六、后续模块规划
 
@@ -499,6 +566,6 @@ frontend/src/
 | 秒杀 | `seckill/`、Kafka 生产者/消费者、Redis Lua | 已完成 |
 | 学习 | `learn/`、播放器/进度/笔记/收藏/评价 | 已完成 |
 | 题库考试 | `question/`、`exam/`、练习/套卷/错题本/成绩 | 已完成 |
-| 院校看板 | `university/`、`stats/` | 待实现（下一模块） |
+| 院校看板 | `university/`、`stats/`、院校详情/后台管理/数据看板 | 已完成 |
 | 实时聊天 | `chat/`（WebSocket/STOMP） | 后续 |
 | Elasticsearch | `search/` 的 ES 实现 | 后续 |

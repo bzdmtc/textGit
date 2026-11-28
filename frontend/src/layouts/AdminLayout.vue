@@ -18,6 +18,7 @@ import {
   ChatDotRound,
   EditPen,
   Tickets,
+  School,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -41,6 +42,7 @@ const iconMap: Record<string, unknown> = {
   ChatDotRound,
   EditPen,
   Tickets,
+  School,
 }
 
 const adminMenus = computed(() => store.menus.filter((menu) => menu.path.startsWith('/admin')))
@@ -85,7 +87,7 @@ async function handleCommand(command: string) {
         </el-menu-item>
       </el-menu>
       <div class="aside-footer">
-        <div class="muted" style="color: #94a3b8">基础版 · 模块 6：题库与考试</div>
+        <div class="muted" style="color: #94a3b8">基础版 · 模块 7：院校与看板</div>
       </div>
     </el-aside>
 
@@ -164,6 +166,8 @@ async function handleCommand(command: string) {
 .admin-menu {
   border-right: none;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 12px 8px;
 }
 

@@ -17,6 +17,7 @@ import com.example.smart_learning.course.dto.CourseDto;
 import com.example.smart_learning.course.dto.TeacherDto;
 import com.example.smart_learning.course.service.CoursePublicService;
 import com.example.smart_learning.course.service.TeacherPublicService;
+import com.example.smart_learning.university.service.UniversityPublicService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,15 +34,18 @@ public class PublicController {
     private final TeacherPublicService teacherPublicService;
     private final ContentPublicService contentPublicService;
     private final CouponUserService couponUserService;
+    private final UniversityPublicService universityPublicService;
 
     public PublicController(CoursePublicService coursePublicService,
                             TeacherPublicService teacherPublicService,
                             ContentPublicService contentPublicService,
-                            CouponUserService couponUserService) {
+                            CouponUserService couponUserService,
+                            UniversityPublicService universityPublicService) {
         this.coursePublicService = coursePublicService;
         this.teacherPublicService = teacherPublicService;
         this.contentPublicService = contentPublicService;
         this.couponUserService = couponUserService;
+        this.universityPublicService = universityPublicService;
     }
 
     @GetMapping("/home")
@@ -50,7 +54,8 @@ public class PublicController {
                 contentPublicService.banners(),
                 coursePublicService.hot(),
                 teacherPublicService.list(),
-                contentPublicService.latestArticles()));
+                contentPublicService.latestArticles(),
+                universityPublicService.featured(6)));
     }
 
     @GetMapping("/courses")

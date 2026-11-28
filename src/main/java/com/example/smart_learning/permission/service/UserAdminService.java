@@ -5,6 +5,7 @@ import com.example.smart_learning.common.datasource.Master;
 import com.example.smart_learning.common.error.BusinessException;
 import com.example.smart_learning.common.error.ErrorCode;
 import com.example.smart_learning.permission.dto.GroupDto;
+import com.example.smart_learning.permission.dto.UserActivityDto;
 import com.example.smart_learning.permission.dto.UserCreateRequest;
 import com.example.smart_learning.permission.dto.UserDto;
 import com.example.smart_learning.permission.dto.UserPermissionView;
@@ -15,6 +16,7 @@ import com.example.smart_learning.permission.entity.SysUserGroup;
 import com.example.smart_learning.permission.repository.SysGroupRepository;
 import com.example.smart_learning.permission.repository.SysPositionRepository;
 import com.example.smart_learning.permission.repository.SysUserGroupRepository;
+import com.example.smart_learning.permission.repository.UserActivityRepository;
 import com.example.smart_learning.user.entity.SysUser;
 import com.example.smart_learning.user.repository.SysUserRepository;
 import org.springframework.data.domain.Page;
@@ -36,6 +38,7 @@ public class UserAdminService {
     private final SysGroupRepository groupRepository;
     private final SysUserGroupRepository userGroupRepository;
     private final SysPositionRepository positionRepository;
+    private final UserActivityRepository userActivityRepository;
     private final PasswordEncoder passwordEncoder;
     private final PermissionService permissionService;
     private final AuditService auditService;
@@ -44,6 +47,7 @@ public class UserAdminService {
                             SysGroupRepository groupRepository,
                             SysUserGroupRepository userGroupRepository,
                             SysPositionRepository positionRepository,
+                            UserActivityRepository userActivityRepository,
                             PasswordEncoder passwordEncoder,
                             PermissionService permissionService,
                             AuditService auditService) {
@@ -51,15 +55,17 @@ public class UserAdminService {
         this.groupRepository = groupRepository;
         this.userGroupRepository = userGroupRepository;
         this.positionRepository = positionRepository;
+        this.userActivityRepository = userActivityRepository;
         this.passwordEncoder = passwordEncoder;
         this.permissionService = permissionService;
         this.auditService = auditService;
     }
 
     @Transactional(readOnly = true)
-    public PageResult<UserDto> page(String keyword, int page, int size) {
+    public PageResult<UserDto> page(String keyword, String status, String position, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 1) - 1, Math.min(Math.max(size, 1), 100));
-        Page<SysUser> result = userRepository.search(keyword, pageable);
+        Page<SysUser> result = userRepository.search(blankToNull(keyword), blankToNull(status),
+                blankToNull(position), pageable);
         List<UserDto> items = result.getContent().stream().map(this::toDto).toList();
         return PageResult.of(items, result.getTotalElements(), page, size);
     }
@@ -194,6 +200,12 @@ public class UserAdminService {
         var snapshot = permissionService.getSnapshot(user);
         return new UserPermissionView(user.getId(), user.getAccount(), snapshot.rights(),
                 snapshot.menus(), snapshot.dataScope(), snapshot.limited(), snapshot.privVersion());
+    }
+
+    @Transactional(readOnly = true)
+    public UserActivityDto activity(Long id) {
+        requireUser(id);
+        return userActivityRepository.activity(id);
     }
 
     private void replaceGroups(Long userId, List<Long> groupIds) {

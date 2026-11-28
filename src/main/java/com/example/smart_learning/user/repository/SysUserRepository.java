@@ -19,8 +19,13 @@ public interface SysUserRepository extends JpaRepository<SysUser, Long> {
             "or lower(coalesce(u.position, '')) like lower(concat('%', :keyword, '%')) " +
             "or coalesce(u.phone, '') like concat('%', :keyword, '%') " +
             "or lower(coalesce(u.email, '')) like lower(concat('%', :keyword, '%'))) " +
+            "and (:status is null or u.status = :status) " +
+            "and (:position is null or u.position = :position) " +
             "order by u.id desc")
-    Page<SysUser> search(@Param("keyword") String keyword, Pageable pageable);
+    Page<SysUser> search(@Param("keyword") String keyword,
+                         @Param("status") String status,
+                         @Param("position") String position,
+                         Pageable pageable);
 
     Optional<SysUser> findByAccount(String account);
 

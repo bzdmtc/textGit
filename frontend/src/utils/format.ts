@@ -17,6 +17,12 @@ export function formatDate(value?: string | null): string {
   return date.toLocaleDateString('zh-CN')
 }
 
+export function formatMoney(value?: number | string | null): string {
+  const amount = Number(value ?? 0)
+  if (Number.isNaN(amount)) return '¥0.00'
+  return `¥${amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 export function couponValueText(type: string, value: number): string {
   if (type === 'PERCENT') {
     return `${(Number(value) / 10).toFixed(1)} 折`

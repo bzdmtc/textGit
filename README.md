@@ -1,6 +1,6 @@
 # 智学考研 · 基础版
 
-仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀**、**模块 5：学习** 和 **模块 6：题库与考试**，后续按「院校看板 → 打磨交付」逐个实现。
+仿新东方考研的全栈项目。当前交付 **模块 1：系统底座**、**模块 2：课程与内容**、**模块 3：交易**、**模块 4：秒杀**、**模块 5：学习**、**模块 6：题库与考试** 和 **模块 7：院校与看板**，后续按「打磨交付 → 实时聊天」逐个实现。
 
 ## 当前已实现
 
@@ -41,8 +41,15 @@
   - 章节练习：按科目/章节抽题，作答即时判题并展示正确答案与解析；错题自动进入错题本
   - 限时套卷：开考固化题目快照、倒计时自动交卷、服务端统一判分、成绩报告与逐题回顾
   - 错题本：按科目/掌握状态筛选、查看答案、标记掌握、移除、未掌握错题重做（答对自动掌握）
-- 后台页面：概览、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券、秒杀、评价审核、题库、试卷
-- Flyway 迁移与种子数据（V1–V15）
+- **院校与看板模块**：
+  - 院校库：按省份/层次/类型/关键词检索；院校详情含专业目录、历年复试分数线走势、报录比
+  - 后台院校管理：院校/专业/分数线/报录比维护，嵌套归属校验，全部写审计
+  - 数据看板：今日/累计成交额、订单、新增用户、学习人次、客单价、待处理退款；成交与订单趋势、热销课程 TOP 6、订单状态分布
+  - 看板按北京时间自然日统计、查询走主库，与订单/用户数据强一致
+  - 用户管理完善：状态/职位筛选、注册与最近登录、活跃数据（订单/消费/选课/刷题/错题）
+  - 审计日志完善：目标类型、动作关键词、操作人、日期范围检索
+- 后台页面：数据看板、权限分组、用户管理、审计日志、课程/讲师/文章/资料/Banner、订单、退款、优惠券、秒杀、评价审核、题库、试卷、院校库
+- Flyway 迁移与种子数据（V1–V21）
 
 ## 技术栈
 
@@ -225,6 +232,21 @@ node frontend/scripts/practice-ui-smoke.cjs # 浏览器 UI 全链路（需前后
 
 题库设计细节（判分规则、快照、错题口径、权限）见 [docs/practice.md](docs/practice.md)。
 
+## 院校与看板演示流程
+
+1. 前台「院校库」按省份/层次/类型筛选，进入院校详情查看专业目录、历年分数线走势与报录比。
+2. `admin` → 院校库管理 → 新增院校/专业/分数线/报录比；「招生数据」抽屉可维护三类数据。
+3. 后台「数据看板」查看今日与累计成交、订单、新增用户、学习人次，切换近 7/14/30 天趋势；热销课程与订单状态分布按所选周期统计。
+4. 用户管理可按状态/职位筛选，点击「活跃数据」查看订单、消费、选课、练习与错题；审计日志可按类型/动作/操作人/日期检索。
+
+```bash
+node scripts/university-smoke.mjs              # API：院校 CRUD → 前台检索 → 看板一致性 → 审计 → 权限
+node frontend/scripts/university-ui-smoke.cjs  # 浏览器 UI 全链路（需前后端已启动）
+sqlcmd -S localhost -C -E -b -f 65001 -d smart_learning -i scripts/reset-university-data.sql
+```
+
+院校与看板设计细节见 [docs/university-stats.md](docs/university-stats.md)。
+
 ## 核心接口
 
 | 方法 | 路径 | 说明 |
@@ -281,6 +303,14 @@ node frontend/scripts/practice-ui-smoke.cjs # 浏览器 UI 全链路（需前后
 | GET/PUT/DELETE | `/api/v1/wrong-questions...` | 错题本列表 / 标记掌握 / 移除 |
 | GET/POST/PUT | `/api/v1/admin/questions...` | 后台题库 CRUD 与启停用 |
 | GET/POST/PUT/DELETE | `/api/v1/admin/papers...` | 后台组卷、发布/下架、停用 |
+| GET | `/api/v1/public/universities` | 院校检索（省份/层次/类型/关键词） |
+| GET | `/api/v1/public/universities/{id}` | 院校详情：专业目录、分数线、报录比 |
+| GET | `/api/v1/public/universities/featured` | 首页精选院校 |
+| GET/POST/PUT/DELETE | `/api/v1/admin/universities...` | 后台院校/专业/分数线/报录比维护 |
+| GET | `/api/v1/admin/stats/dashboard?days=` | 数据看板：汇总、趋势、热销课程、订单状态 |
+| GET | `/api/v1/admin/users?status=&position=` | 用户状态/职位筛选 |
+| GET | `/api/v1/admin/users/{id}/activity` | 用户活跃数据 |
+| GET | `/api/v1/admin/audit-logs?targetType=&action=&userId=&from=&to=` | 审计多条件检索 |
 | GET | `/api/v1/system/route-check/read` | 验证读路由（`smart_learning_read`） |
 | GET | `/api/v1/system/route-check/master` | 验证写路由（`smart_learning`） |
 | POST | `/api/v1/system/kafka-check` | Kafka 生产者冒烟（发送 `system-check`） |
@@ -294,8 +324,9 @@ node frontend/scripts/practice-ui-smoke.cjs # 浏览器 UI 全链路（需前后
 - 秒杀设计：[docs/seckill.md](docs/seckill.md)
 - 学习设计：[docs/learn.md](docs/learn.md)
 - 题库考试设计：[docs/practice.md](docs/practice.md)
+- 院校与看板设计：[docs/university-stats.md](docs/university-stats.md)
 - 2026-11-25 会话记录：[docs/chat-history-2026-11-25.md](docs/chat-history-2026-11-25.md)
 
 ## 后续模块
 
-院校库与统计看板、实时聊天、Elasticsearch 等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。
+实时聊天（WebSocket/STOMP）、Elasticsearch 搜索等，按模块逐个交付，见 `docs/project-structure.md` 末尾规划。

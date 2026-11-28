@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Service
 @Master
 public class AuditService {
@@ -40,11 +43,18 @@ public class AuditService {
     }
 
     @Transactional(readOnly = true)
-    public Page<SysAuditLog> page(String targetType, Pageable pageable) {
-        if (targetType == null || targetType.isBlank()) {
-            return auditLogRepository.findAllByOrderByIdDesc(pageable);
-        }
-        return auditLogRepository.findByTargetTypeOrderByIdDesc(targetType, pageable);
+    public Page<SysAuditLog> page(String targetType, String action, Long userId,
+                                  LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        return auditLogRepository.search(blankToNull(targetType), blankToNull(action), userId, from, to, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> targetTypes() {
+        return auditLogRepository.distinctTargetTypes();
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private String toJson(Object value) {

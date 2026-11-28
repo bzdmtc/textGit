@@ -39,6 +39,8 @@
 | 后台课程/内容管理 | MASTER | 管理端 Service 统一 `@Master` |
 | 我的订单/优惠券/课程、购买状态 | MASTER | `OrderService`、`CouponUserService`、`EnrollmentService` 固定主库 |
 | 后台订单/退款/优惠券管理 | MASTER | `OrderAdminService`、`CouponAdminService` 固定主库 |
+| 院校库检索/详情/精选 | MASTER | `UniversityPublicService` 固定主库，后台院校/分数线修改前台即时可见 |
+| 后台数据看板 | MASTER | `StatsService` 固定主库，保证看板与订单/用户管理实时一致 |
 | 交易定时任务（超时关单/券过期/自动完成） | MASTER | `TradeScheduler` 薄壳调用独立事务 Bean `TradeSweepService`，确保代理与路由生效 |
 | 写事务内嵌套查询 | MASTER | 同一事务不切库 |
 | 只读事务内写 | 禁止 | 代码规范 |

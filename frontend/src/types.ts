@@ -109,7 +109,18 @@ export interface User {
   status: string
   privVersion: number
   lastLoginAt?: string | null
+  createdAt?: string | null
   groups: Group[]
+}
+
+export interface UserActivity {
+  userId: number
+  orderCount: number
+  paidOrderCount: number
+  paidAmount: number
+  courseCount: number
+  practiceCount: number
+  wrongCount: number
 }
 
 export interface UserPermissionView {
@@ -243,6 +254,7 @@ export interface HomeData {
   hotCourses: Course[]
   teachers: Teacher[]
   latestArticles: Article[]
+  universities: University[]
 }
 
 export interface Coupon {
@@ -710,4 +722,117 @@ export interface PaperQuestionItem {
 export interface PaperDetail {
   paper: Paper
   questions: PaperQuestionItem[]
+}
+
+export interface University {
+  id: number
+  name: string
+  province: string
+  city?: string | null
+  level?: string | null
+  type?: string | null
+  logoUrl?: string | null
+  website?: string | null
+  introduction?: string | null
+  featured: boolean
+  sort: number
+  status: string
+  majorCount: number
+}
+
+export interface UniversityMajor {
+  id: number
+  universityId: number
+  name: string
+  code?: string | null
+  degreeType: string
+  duration?: string | null
+  tuition?: number | null
+  examSubjects?: string | null
+  introduction?: string | null
+  sort: number
+  status: string
+}
+
+export interface ScoreLine {
+  id: number
+  universityId: number
+  majorId: number
+  majorName?: string | null
+  year: number
+  degreeType: string
+  political?: number | null
+  english?: number | null
+  math?: number | null
+  majorScore?: number | null
+  total: number
+}
+
+export interface AdmissionStat {
+  id: number
+  universityId: number
+  majorId: number
+  majorName?: string | null
+  year: number
+  applicants: number
+  admitted: number
+  ratio?: number | null
+  minScore?: number | null
+}
+
+export interface UniversityDetail {
+  university: University
+  majors: UniversityMajor[]
+  scoreLines: ScoreLine[]
+  admissionStats: AdmissionStat[]
+}
+
+export interface UniversityOptions {
+  provinces: string[]
+  levels: string[]
+  types: string[]
+}
+
+export interface DashboardSummary {
+  todaySales: number
+  todayOrders: number
+  todayNewUsers: number
+  todayEnrollments: number
+  totalSales: number
+  totalOrders: number
+  paidOrders: number
+  totalUsers: number
+  totalEnrollments: number
+  pendingRefunds: number
+  avgOrderAmount: number
+}
+
+export interface TrendPoint {
+  date: string
+  sales: number
+  orders: number
+  newUsers: number
+  enrollments: number
+}
+
+export interface HotCourse {
+  courseId: number
+  title: string
+  subject?: string | null
+  salesCount: number
+  salesAmount: number
+}
+
+export interface NamedCount {
+  name: string
+  count: number
+}
+
+export interface DashboardData {
+  days: number
+  today: string
+  summary: DashboardSummary
+  trend: TrendPoint[]
+  hotCourses: HotCourse[]
+  orderStatus: NamedCount[]
 }

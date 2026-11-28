@@ -11,6 +11,12 @@ const router = createRouter({
         { path: '', name: 'home', component: () => import('@/views/public/HomeView.vue') },
         { path: 'courses', name: 'course-list', component: () => import('@/views/public/CourseListView.vue') },
         { path: 'courses/:id', name: 'course-detail', component: () => import('@/views/public/CourseDetailView.vue') },
+        { path: 'universities', name: 'university-list', component: () => import('@/views/public/UniversityListView.vue') },
+        {
+          path: 'universities/:id',
+          name: 'university-detail',
+          component: () => import('@/views/public/UniversityDetailView.vue'),
+        },
         { path: 'seckill', name: 'seckill', component: () => import('@/views/public/SeckillView.vue') },
         {
           path: 'practice',
@@ -167,6 +173,12 @@ const router = createRouter({
           name: 'admin-papers',
           component: () => import('@/views/admin/PaperListView.vue'),
           meta: { requiresAuth: true, priv: { module: 'paper', method: 'browse' } },
+        },
+        {
+          path: 'universities',
+          name: 'admin-universities',
+          component: () => import('@/views/admin/UniversityListView.vue'),
+          meta: { requiresAuth: true, priv: { module: 'university', method: 'browse' } },
         },
         {
           path: 'logs',

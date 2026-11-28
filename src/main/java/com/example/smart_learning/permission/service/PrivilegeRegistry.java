@@ -5,7 +5,7 @@ import java.util.List;
 
 public enum PrivilegeRegistry {
 
-    ADMIN_ACCESS("admin", "access", "后台访问", "VIEW", "/admin/dashboard", "Setting", 10),
+    ADMIN_ACCESS("admin", "access", "数据看板", "VIEW", "/admin/dashboard", "Setting", 10),
     MANAGE_ACCESS("manage", "access", "管理端访问", "VIEW", "/teacher", "Management", 20),
 
     USER_BROWSE("user", "browse", "用户列表", "VIEW", "/admin/users", "User", 110),
@@ -76,6 +76,11 @@ public enum PrivilegeRegistry {
     PAPER_EDIT("paper", "edit", "编辑试卷", "ACTION", null, null, 372),
     PAPER_DELETE("paper", "delete", "停用试卷", "ACTION", null, null, 373),
     PAPER_PUBLISH("paper", "publish", "发布/下架试卷", "ACTION", null, null, 374),
+
+    UNIVERSITY_BROWSE("university", "browse", "院校库管理", "VIEW", "/admin/universities", "School", 380),
+    UNIVERSITY_CREATE("university", "create", "新增院校", "ACTION", null, null, 381),
+    UNIVERSITY_EDIT("university", "edit", "编辑院校", "ACTION", null, null, 382),
+    UNIVERSITY_DELETE("university", "delete", "停用院校", "ACTION", null, null, 383),
 
     AUDIT_BROWSE("audit", "browse", "审计日志", "VIEW", "/admin/logs", "Document", 140),
 

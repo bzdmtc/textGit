@@ -17,12 +17,13 @@ public record UserDto(
         String status,
         Long privVersion,
         LocalDateTime lastLoginAt,
+        LocalDateTime createdAt,
         List<GroupDto> groups
 ) {
 
     public static UserDto of(SysUser user, List<GroupDto> groups) {
         return new UserDto(user.getId(), user.getAccount(), user.getRealname(), user.getNickname(),
                 user.getPosition(), user.getPhone(), user.getEmail(), user.getAvatar(), user.getStatus(),
-                user.getPrivVersion(), user.getLastLoginAt(), groups);
+                user.getPrivVersion(), user.getLastLoginAt(), user.getCreatedAt(), groups);
     }
 }

@@ -2,6 +2,7 @@ package com.example.smart_learning.permission.controller;
 
 import com.example.smart_learning.common.api.ApiResponse;
 import com.example.smart_learning.common.api.PageResult;
+import com.example.smart_learning.permission.dto.UserActivityDto;
 import com.example.smart_learning.permission.dto.UserCreateRequest;
 import com.example.smart_learning.permission.dto.UserDto;
 import com.example.smart_learning.permission.dto.UserGroupRequest;
@@ -33,9 +34,11 @@ public class UserAdminController {
     @GetMapping
     @RequiresPriv(module = "user", method = "browse")
     public ApiResponse<PageResult<UserDto>> page(@RequestParam(required = false) String keyword,
+                                                 @RequestParam(required = false) String status,
+                                                 @RequestParam(required = false) String position,
                                                  @RequestParam(defaultValue = "1") int page,
                                                  @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(userAdminService.page(keyword, page, size));
+        return ApiResponse.success(userAdminService.page(keyword, status, position, page, size));
     }
 
     @GetMapping("/{id}")
@@ -72,5 +75,11 @@ public class UserAdminController {
     @RequiresPriv(module = "user", method = "browse")
     public ApiResponse<UserPermissionView> permissions(@PathVariable Long id) {
         return ApiResponse.success(userAdminService.permissions(id));
+    }
+
+    @GetMapping("/{id}/activity")
+    @RequiresPriv(module = "user", method = "browse")
+    public ApiResponse<UserActivityDto> activity(@PathVariable Long id) {
+        return ApiResponse.success(userAdminService.activity(id));
     }
 }

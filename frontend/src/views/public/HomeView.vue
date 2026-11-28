@@ -6,7 +6,13 @@ import type { HomeData } from '@/types'
 import CourseCard from '@/components/CourseCard.vue'
 
 const router = useRouter()
-const data = ref<HomeData>({ banners: [], hotCourses: [], teachers: [], latestArticles: [] })
+const data = ref<HomeData>({
+  banners: [],
+  hotCourses: [],
+  teachers: [],
+  latestArticles: [],
+  universities: [],
+})
 const keyword = ref('')
 const loading = ref(false)
 
@@ -104,6 +110,36 @@ onMounted(load)
           <p>{{ teacher.title }}</p>
           <span>{{ teacher.subject }}</span>
         </div>
+      </div>
+    </section>
+
+    <section v-if="data.universities.length > 0" class="section">
+      <div class="section-head">
+        <div>
+          <h2>院校推荐</h2>
+          <p>专业目录、历年复试线与报录比一站查询</p>
+        </div>
+        <router-link to="/universities" class="more-link">全部院校 →</router-link>
+      </div>
+      <div class="university-grid">
+        <router-link
+          v-for="university in data.universities"
+          :key="university.id"
+          :to="`/universities/${university.id}`"
+          class="university-item"
+        >
+          <div class="university-logo">{{ university.name.slice(0, 1) }}</div>
+          <div class="university-body">
+            <div class="university-title">
+              <h3>{{ university.name }}</h3>
+              <el-tag v-if="university.level" size="small" type="danger" effect="plain">
+                {{ university.level }}
+              </el-tag>
+            </div>
+            <p>{{ university.province }} · {{ university.type || '综合' }} · {{ university.majorCount }} 个专业</p>
+          </div>
+          <span class="university-arrow">→</span>
+        </router-link>
       </div>
     </section>
 
@@ -347,6 +383,69 @@ onMounted(load)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.university-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.university-item {
+  background: #fff;
+  border: 1px solid #eef0f4;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.university-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+}
+
+.university-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e60012, #ff7a00);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.university-body {
+  flex: 1;
+}
+
+.university-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.university-title h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.university-body p {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.university-arrow {
+  color: #e60012;
+  font-weight: 700;
 }
 
 @media (max-width: 1000px) {

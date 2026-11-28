@@ -3,16 +3,24 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { permissionApi, type PositionPayload } from '@/api/permission'
 import { userApi, type UserCreatePayload, type UserUpdatePayload } from '@/api/user'
-import type { Group, Position, User, UserPermissionView } from '@/types'
+import { formatDateTime } from '@/utils/format'
+import type { Group, Position, User, UserActivity, UserPermissionView } from '@/types'
 
 const users = ref<User[]>([])
 const groups = ref<Group[]>([])
 const positions = ref<Position[]>([])
 const keyword = ref('')
+const filterStatus = ref('')
+const filterPosition = ref('')
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
 const loading = ref(false)
+
+const activityVisible = ref(false)
+const activityLoading = ref(false)
+const activityUser = ref<User | null>(null)
+const activityData = ref<UserActivity | null>(null)
 
 const createVisible = ref(false)
 const createForm = reactive<UserCreatePayload>({
@@ -62,12 +70,25 @@ const permLoading = ref(false)
 async function load() {
   loading.value = true
   try {
-    const response = await userApi.page(keyword.value, page.value, size.value)
+    const response = await userApi.page({
+      keyword: keyword.value || undefined,
+      status: filterStatus.value || undefined,
+      position: filterPosition.value || undefined,
+      page: page.value,
+      size: size.value,
+    })
     users.value = response.data.data.items
     total.value = response.data.data.total
   } finally {
     loading.value = false
   }
+}
+
+function resetFilters() {
+  keyword.value = ''
+  filterStatus.value = ''
+  filterPosition.value = ''
+  search()
 }
 
 async function loadGroups() {
@@ -262,6 +283,19 @@ async function openPermissions(user: User) {
   }
 }
 
+async function openActivity(user: User) {
+  activityUser.value = user
+  activityData.value = null
+  activityVisible.value = true
+  activityLoading.value = true
+  try {
+    const response = await userApi.activity(user.id)
+    activityData.value = response.data.data
+  } finally {
+    activityLoading.value = false
+  }
+}
+
 onMounted(async () => {
   await Promise.all([load(), loadGroups(), loadPositions()])
 })
@@ -289,12 +323,19 @@ onMounted(async () => {
         <el-input
           v-model="keyword"
           placeholder="搜索账号 / 姓名 / 职位 / 手机 / 邮箱"
-          style="width: 320px"
+          style="width: 280px"
           clearable
           @keyup.enter="search"
         />
+        <el-select v-model="filterStatus" placeholder="状态" clearable style="width: 110px" @change="search">
+          <el-option label="启用" value="ACTIVE" />
+          <el-option label="禁用" value="DISABLED" />
+        </el-select>
+        <el-select v-model="filterPosition" placeholder="职位" clearable style="width: 160px" @change="search">
+          <el-option v-for="position in positions" :key="position.id" :label="position.name" :value="position.name" />
+        </el-select>
         <el-button type="primary" @click="search">搜索</el-button>
-        <el-button @click="keyword = ''; search()">重置</el-button>
+        <el-button @click="resetFilters">重置</el-button>
       </div>
 
       <el-table v-loading="loading" :data="users" stripe>
@@ -313,6 +354,12 @@ onMounted(async () => {
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="注册时间" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="最近登录" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.lastLoginAt) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'danger'">
@@ -320,7 +367,7 @@ onMounted(async () => {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300" fixed="right">
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
             <el-button v-priv="{ module: 'user', method: 'edit' }" link type="primary" @click="openEdit(row)">
               编辑
@@ -334,6 +381,7 @@ onMounted(async () => {
               分配分组
             </el-button>
             <el-button link type="primary" @click="openPermissions(row)">权限预览</el-button>
+            <el-button link type="primary" @click="openActivity(row)">活跃数据</el-button>
             <el-button
               v-priv="{ module: 'user', method: 'disable' }"
               link
@@ -580,5 +628,108 @@ onMounted(async () => {
         </template>
       </div>
     </el-dialog>
+
+    <el-dialog v-model="activityVisible" title="用户活跃数据" width="560px">
+      <div v-loading="activityLoading">
+        <div v-if="activityUser" class="activity-head">
+          <div>
+            <div class="activity-name">{{ activityUser.realname || activityUser.nickname || activityUser.account }}</div>
+            <div class="muted">{{ activityUser.account }} · {{ activityUser.position || '未设置职位' }}</div>
+          </div>
+          <el-tag :type="activityUser.status === 'ACTIVE' ? 'success' : 'info'">
+            {{ activityUser.status === 'ACTIVE' ? '启用' : '禁用' }}
+          </el-tag>
+        </div>
+        <el-row v-if="activityData" :gutter="12" style="margin-top: 16px">
+          <el-col :span="8">
+            <div class="activity-metric">
+              <span>已支付订单</span>
+              <strong>{{ activityData.paidOrderCount }} 笔</strong>
+              <small>全部订单 {{ activityData.orderCount }} 笔</small>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="activity-metric">
+              <span>累计消费</span>
+              <strong>¥{{ Number(activityData.paidAmount).toFixed(2) }}</strong>
+              <small>已支付 / 已完成订单</small>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="activity-metric">
+              <span>已购课程</span>
+              <strong>{{ activityData.courseCount }} 门</strong>
+              <small>当前有效选课</small>
+            </div>
+          </el-col>
+          <el-col :span="8" style="margin-top: 12px">
+            <div class="activity-metric">
+              <span>练习 / 考试</span>
+              <strong>{{ activityData.practiceCount }} 次</strong>
+              <small>含章节练习与套卷</small>
+            </div>
+          </el-col>
+          <el-col :span="8" style="margin-top: 12px">
+            <div class="activity-metric">
+              <span>待攻克错题</span>
+              <strong>{{ activityData.wrongCount }} 道</strong>
+              <small>未标记掌握</small>
+            </div>
+          </el-col>
+          <el-col :span="8" style="margin-top: 12px">
+            <div class="activity-metric">
+              <span>注册时间</span>
+              <strong style="font-size: 14px">{{ formatDateTime(activityUser?.createdAt) }}</strong>
+              <small>最近登录 {{ formatDateTime(activityUser?.lastLoginAt) }}</small>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
+      <template #footer>
+        <el-button @click="activityVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.activity-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.activity-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #eef0f4;
+  height: 100%;
+}
+
+.activity-metric span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.activity-metric strong {
+  font-size: 18px;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-metric small {
+  color: #9ca3af;
+  font-size: 11px;
+}
+</style>
