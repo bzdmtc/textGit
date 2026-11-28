@@ -53,6 +53,10 @@ const currentTitle = computed(() => {
 })
 
 async function handleCommand(command: string) {
+  if (command === 'home') {
+    await router.push('/')
+    return
+  }
   if (command === 'logout') {
     await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
     await store.logout()
@@ -97,22 +101,26 @@ async function handleCommand(command: string) {
           <div class="header-title">{{ currentTitle }}</div>
           <div class="muted">Spring Boot 4.2 · 禅道式权限 · 主从读写分离</div>
         </div>
-        <el-dropdown trigger="click" @command="handleCommand">
-          <div class="user-chip">
-            <el-avatar :size="32" style="background: #e60012">
-              {{ store.displayName.slice(0, 1) }}
-            </el-avatar>
-            <div>
-              <div class="user-name">{{ store.displayName }}</div>
-              <div class="muted">{{ store.me?.user.groups.join(' / ') }}</div>
+        <div class="header-actions">
+          <router-link to="/" class="front-link">返回前台</router-link>
+          <el-dropdown trigger="click" @command="handleCommand">
+            <div class="user-chip">
+              <el-avatar :size="32" style="background: #e60012">
+                {{ store.displayName.slice(0, 1) }}
+              </el-avatar>
+              <div>
+                <div class="user-name">{{ store.displayName }}</div>
+                <div class="muted">{{ store.me?.user.groups.join(' / ') }}</div>
+              </div>
             </div>
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="home">返回前台首页</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </el-header>
 
       <el-main class="admin-main">
@@ -199,6 +207,27 @@ async function handleCommand(command: string) {
   font-size: 18px;
   font-weight: 600;
   color: #111827;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.front-link {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #f7b3b8;
+  background: #fce6e8;
+  color: #e60012;
+  font-size: 13px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.front-link:hover {
+  background: #f9ccd0;
+  border-color: #f28088;
 }
 
 .user-chip {
