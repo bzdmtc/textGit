@@ -52,15 +52,19 @@ const currentTitle = computed(() => {
   return item?.name || '管理后台'
 })
 
+async function logout() {
+  await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
+  await store.logout()
+  await router.replace('/login')
+}
+
 async function handleCommand(command: string) {
   if (command === 'home') {
     await router.push('/')
     return
   }
   if (command === 'logout') {
-    await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
-    await store.logout()
-    await router.replace('/login')
+    await logout()
   }
 }
 </script>
@@ -103,6 +107,7 @@ async function handleCommand(command: string) {
         </div>
         <div class="header-actions">
           <router-link to="/" class="front-link">返回前台</router-link>
+          <el-button text class="logout-link" @click="logout">退出登录</el-button>
           <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-chip">
               <el-avatar :size="32" style="background: #e60012">
@@ -228,6 +233,15 @@ async function handleCommand(command: string) {
 .front-link:hover {
   background: #f9ccd0;
   border-color: #f28088;
+}
+
+.logout-link {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.logout-link:hover {
+  color: #dc3c3d;
 }
 
 .user-chip {
