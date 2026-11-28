@@ -42,30 +42,60 @@ export const useAuthStore = defineStore('auth', () => {
     return me.value
   }
 
-  async function loginByAccount(account: string, password: string) {
+  async function loginByAccount(account: string, password: string, captcha?: { id: string; code: string }) {
     loading.value = true
     try {
-      const response = await authApi.login({ account, password })
+      const response = await authApi.login({
+        account,
+        password,
+        captchaId: captcha?.id,
+        captchaCode: captcha?.code,
+      })
       setSession(response.data.data)
     } finally {
       loading.value = false
     }
   }
 
-  async function loginBySms(phone: string, code: string) {
+  async function loginBySms(phone: string, code: string, captcha?: { id: string; code: string }) {
     loading.value = true
     try {
-      const response = await authApi.loginBySms({ phone, code })
+      const response = await authApi.loginBySms({
+        phone,
+        code,
+        captchaId: captcha?.id,
+        captchaCode: captcha?.code,
+      })
       setSession(response.data.data)
     } finally {
       loading.value = false
     }
   }
 
-  async function loginByEmail(email: string, code: string) {
+  async function loginByEmail(email: string, code: string, captcha?: { id: string; code: string }) {
     loading.value = true
     try {
-      const response = await authApi.loginByEmail({ email, code })
+      const response = await authApi.loginByEmail({
+        email,
+        code,
+        captchaId: captcha?.id,
+        captchaCode: captcha?.code,
+      })
+      setSession(response.data.data)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function register(payload: {
+    target: string
+    code: string
+    password?: string
+    nickname?: string
+  }) {
+    loading.value = true
+    try {
+      const response = await authApi.register(payload)
       setSession(response.data.data)
     } finally {
       loading.value = false
@@ -98,6 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginByAccount,
     loginBySms,
     loginByEmail,
+    register,
     logout,
   }
 })

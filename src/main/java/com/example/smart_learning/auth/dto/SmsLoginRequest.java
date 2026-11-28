@@ -9,6 +9,8 @@ public record SmsLoginRequest(
         String phone,
         @NotBlank(message = "验证码不能为空")
         @Pattern(regexp = "^\\d{6}$", message = "验证码为 6 位数字")
-        String code
+        String code,
+        String captchaId,
+        String captchaCode
 ) {
 }

@@ -4,6 +4,7 @@ import com.example.smart_learning.auth.dto.EmailLoginRequest;
 import com.example.smart_learning.auth.dto.LoginRequest;
 import com.example.smart_learning.auth.dto.MeResponse;
 import com.example.smart_learning.auth.dto.RefreshRequest;
+import com.example.smart_learning.auth.dto.RegisterRequest;
 import com.example.smart_learning.auth.dto.SmsLoginRequest;
 import com.example.smart_learning.auth.dto.TokenResponse;
 import com.example.smart_learning.auth.dto.UserProfile;
@@ -34,12 +35,18 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Service
 @Master
 public class AuthService {
+
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^1[3-9]\\d{9}$");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final SysUserRepository userRepository;
     private final SysUserGroupRepository userGroupRepository;
@@ -49,6 +56,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserDetailsServiceImpl userDetailsService;
     private final VerificationCodeService verificationCodeService;
+    private final CaptchaService captchaService;
     private final StringRedisTemplate redis;
     private final Duration refreshTtl;
 
@@ -60,6 +68,7 @@ public class AuthService {
                        JwtService jwtService,
                        UserDetailsServiceImpl userDetailsService,
                        VerificationCodeService verificationCodeService,
+                       CaptchaService captchaService,
                        StringRedisTemplate redis,
                        @Value("${app.jwt.refresh-ttl:P7D}") Duration refreshTtl) {
         this.userRepository = userRepository;
@@ -70,6 +79,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.verificationCodeService = verificationCodeService;
+        this.captchaService = captchaService;
         this.redis = redis;
         this.refreshTtl = refreshTtl;
     }
@@ -77,8 +87,13 @@ public class AuthService {
     @Transactional
     public TokenResponse login(LoginRequest request) {
         String account = request.account();
-        checkLoginAllowed(account);
-        SysUser user = userRepository.findByAccount(account).orElse(null);
+        checkLoginCooldown(account);
+        // 账号密码登录每次都必须通过图形验证码
+        captchaService.verify(request.captchaId(), request.captchaCode());
+        SysUser user = userRepository.findByAccount(account)
+                .or(() -> userRepository.findByPhone(account))
+                .or(() -> userRepository.findByEmail(account))
+                .orElse(null);
         if (user == null) {
             recordLoginFailure(account);
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
@@ -98,9 +113,11 @@ public class AuthService {
 
     @Transactional
     public TokenResponse loginBySms(SmsLoginRequest request) {
+        captchaService.verify(request.captchaId(), request.captchaCode());
+        // 先验码再查用户，避免未注册手机号未持有验证码时被枚举
         verificationCodeService.verify("sms", request.phone(), request.code());
         SysUser user = userRepository.findByPhone(request.phone())
-                .orElseGet(() -> registerByPhone(request.phone()));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "该手机号未注册，请先注册"));
         ensureActive(user);
         user.setLastLoginAt(LocalDateTime.now(ZoneOffset.UTC));
         userRepository.save(user);
@@ -110,14 +127,79 @@ public class AuthService {
 
     @Transactional
     public TokenResponse loginByEmail(EmailLoginRequest request) {
+        captchaService.verify(request.captchaId(), request.captchaCode());
         verificationCodeService.verify("email", request.email(), request.code());
         SysUser user = userRepository.findByEmail(request.email())
-                .orElseGet(() -> registerByEmail(request.email()));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "该邮箱未注册，请先注册"));
         ensureActive(user);
         user.setLastLoginAt(LocalDateTime.now(ZoneOffset.UTC));
         userRepository.save(user);
         LoginUser loginUser = userDetailsService.loadById(user.getId());
         return issueTokens(user, loginUser);
+    }
+
+    @Transactional
+    public TokenResponse register(RegisterRequest request) {
+        String target = request.target().trim();
+        boolean phoneTarget = PHONE_PATTERN.matcher(target).matches();
+        boolean emailTarget = EMAIL_PATTERN.matcher(target).matches();
+        if (!phoneTarget && !emailTarget) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "请输入正确的手机号或邮箱");
+        }
+        String channel = phoneTarget ? "sms" : "email";
+        // 同一目标并发注册只放行一个，避免双击/并发请求建出重复账号
+        String lockKey = "auth:register:lock:" + channel + ":" + target;
+        Boolean locked = redis.opsForValue().setIfAbsent(lockKey, "1", Duration.ofSeconds(10));
+        if (!Boolean.TRUE.equals(locked)) {
+            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "注册处理中，请勿重复提交");
+        }
+        try {
+            verificationCodeService.verify(channel, target, request.code());
+
+            if (phoneTarget && userRepository.existsByPhone(target)) {
+                throw new BusinessException(ErrorCode.PHONE_EXISTS, "该手机号已注册，请直接登录");
+            }
+            if (emailTarget && userRepository.existsByEmail(target)) {
+                throw new BusinessException(ErrorCode.EMAIL_EXISTS, "该邮箱已注册，请直接登录");
+            }
+
+            String nickname = request.nickname() == null ? "" : request.nickname().trim();
+            SysUser user = new SysUser();
+            if (phoneTarget) {
+                user.setAccount(uniqueAccount("u" + target));
+                user.setPhone(target);
+                if (nickname.isEmpty()) {
+                    nickname = "学员" + target.substring(target.length() - 4);
+                }
+            } else {
+                String prefix = target.substring(0, target.indexOf('@'));
+                user.setAccount(uniqueAccount("e_" + prefix));
+                user.setEmail(target);
+                if (nickname.isEmpty()) {
+                    nickname = prefix;
+                }
+            }
+            user.setNickname(nickname);
+            user.setPosition("学员");
+            user.setStatus("ACTIVE");
+            user.setPrivVersion(0L);
+
+            String password = request.password() == null ? "" : request.password().trim();
+            if (!password.isEmpty()) {
+                if (password.length() < 6) {
+                    throw new BusinessException(ErrorCode.BAD_REQUEST, "密码至少 6 位");
+                }
+                user.setPasswordHash(passwordEncoder.encode(password));
+            }
+            user.setLastLoginAt(LocalDateTime.now(ZoneOffset.UTC));
+
+            user = userRepository.save(user);
+            assignStudentGroup(user.getId());
+            LoginUser loginUser = userDetailsService.loadById(user.getId());
+            return issueTokens(user, loginUser);
+        } finally {
+            redis.delete(lockKey);
+        }
     }
 
     @Transactional
@@ -177,33 +259,6 @@ public class AuthService {
                 loginUser.getPermissions().privVersion());
     }
 
-    private SysUser registerByPhone(String phone) {
-        SysUser user = new SysUser();
-        user.setAccount(uniqueAccount("u" + phone));
-        user.setPhone(phone);
-        user.setNickname("学员" + phone.substring(phone.length() - 4));
-        user.setPosition("学员");
-        user.setStatus("ACTIVE");
-        user.setPrivVersion(0L);
-        user = userRepository.save(user);
-        assignStudentGroup(user.getId());
-        return user;
-    }
-
-    private SysUser registerByEmail(String email) {
-        SysUser user = new SysUser();
-        String prefix = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
-        user.setAccount(uniqueAccount("e_" + prefix));
-        user.setEmail(email);
-        user.setNickname(prefix);
-        user.setPosition("学员");
-        user.setStatus("ACTIVE");
-        user.setPrivVersion(0L);
-        user = userRepository.save(user);
-        assignStudentGroup(user.getId());
-        return user;
-    }
-
     private String uniqueAccount(String base) {
         String safe = base.length() > 48 ? base.substring(0, 48) : base;
         if (!userRepository.existsByAccount(safe)) {
@@ -228,10 +283,11 @@ public class AuthService {
         }
     }
 
-    private void checkLoginAllowed(String account) {
-        String value = redis.opsForValue().get(loginFailKey(account));
-        if (value != null && Integer.parseInt(value) >= 5) {
-            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "登录失败次数过多，请 10 分钟后再试");
+    /** 冷却期内不允许再尝试，但不锁定账号，冷却结束即可继续。 */
+    private void checkLoginCooldown(String account) {
+        Long seconds = redis.getExpire(loginCooldownKey(account), TimeUnit.SECONDS);
+        if (seconds != null && seconds > 0) {
+            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "登录尝试过于频繁，请 " + seconds + " 秒后再试");
         }
     }
 
@@ -241,14 +297,32 @@ public class AuthService {
         if (count != null && count == 1L) {
             redis.expire(key, Duration.ofMinutes(10));
         }
+        int seconds = cooldownSeconds(count == null ? 0 : count);
+        if (seconds > 0) {
+            redis.opsForValue().set(loginCooldownKey(account), String.valueOf(seconds), Duration.ofSeconds(seconds));
+        }
+    }
+
+    /** 第 3 次失败起逐级冷却：10s / 20s / 40s，最长 60s。 */
+    private int cooldownSeconds(long failures) {
+        if (failures < 3) {
+            return 0;
+        }
+        return (int) Math.min(60L, 10L << Math.min(failures - 3, 3));
     }
 
     private void clearLoginFailures(String account) {
         redis.delete(loginFailKey(account));
+        redis.delete(loginCooldownKey(account));
     }
 
     private String loginFailKey(String account) {
-        return "auth:login:fail:" + account;
+        // 账号大小写不敏感（与数据库排序规则一致），避免换大小写绕过计数
+        return "auth:login:fail:" + account.toLowerCase(Locale.ROOT);
+    }
+
+    private String loginCooldownKey(String account) {
+        return "auth:login:cooldown:" + account.toLowerCase(Locale.ROOT);
     }
 
     private String sha256(String value) {

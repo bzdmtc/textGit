@@ -1,6 +1,7 @@
 const { chromium } = require('playwright-core')
 const path = require('node:path')
 const fs = require('node:fs')
+const { uiLogin } = require('./lib/auth-helper.cjs')
 
 const base = process.env.UI_BASE || 'http://localhost:5173'
 const outputDir = path.join(__dirname, '..', 'screenshots')
@@ -35,8 +36,7 @@ async function main() {
   await page.screenshot({ path: path.join(outputDir, '01-login.png'), fullPage: true })
   console.log('login text:', (await page.locator('body').innerText()).slice(0, 200).replace(/\n/g, ' | '))
 
-  await page.getByRole('button', { name: '登录', exact: true }).first().click()
-  await page.waitForURL('**/admin/dashboard', { timeout: 15000 })
+  await uiLogin(page, base, 'admin', 'Admin@123')
   await page.waitForLoadState('networkidle')
   await page.screenshot({ path: path.join(outputDir, '02-dashboard.png'), fullPage: true })
   console.log('dashboard text:', (await page.locator('body').innerText()).slice(0, 300).replace(/\n/g, ' | '))

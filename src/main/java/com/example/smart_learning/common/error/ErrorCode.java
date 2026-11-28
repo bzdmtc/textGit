@@ -14,6 +14,8 @@ public enum ErrorCode {
     TOO_MANY_REQUESTS(20005, "请求过于频繁，请稍后再试"),
     USER_DISABLED(20006, "账号已被禁用"),
     TOKEN_INVALID(20007, "令牌无效"),
+    CAPTCHA_REQUIRED(20008, "请先完成图形验证码"),
+    CAPTCHA_INVALID(20009, "图形验证码错误或已过期"),
 
     GROUP_NOT_FOUND(30001, "权限分组不存在"),
     GROUP_CODE_EXISTS(30002, "分组编码已存在"),

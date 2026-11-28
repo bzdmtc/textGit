@@ -2,6 +2,7 @@
 const { chromium } = require('playwright-core')
 const path = require('node:path')
 const fs = require('node:fs')
+const { apiLogin, uiLogin } = require('./lib/auth-helper.cjs')
 
 const base = process.env.UI_BASE || 'http://localhost:5173'
 const apiBase = 'http://localhost:8080/api/v1'
@@ -23,7 +24,7 @@ async function api(method, url, body, token) {
 }
 
 async function ensureEnrolled() {
-  const login = await api('POST', '/auth/login', { account: 'student', password: 'Student@123' })
+  const login = await apiLogin('student', 'Student@123')
   const token = login.accessToken
   const status = await api('GET', '/my/purchase-status?courseId=1', null, token)
   if (status.enrolled) return
@@ -32,11 +33,7 @@ async function ensureEnrolled() {
 }
 
 async function login(page, account, password) {
-  await page.goto(`${base}/login`, { waitUntil: 'networkidle' })
-  await page.getByPlaceholder('请输入账号').fill(account)
-  await page.getByPlaceholder('请输入密码').fill(password)
-  await page.getByRole('button', { name: '登录', exact: true }).click()
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 })
+  await uiLogin(page, base, account, password)
 }
 
 async function main() {

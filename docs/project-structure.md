@@ -4,6 +4,7 @@
 
 ## 一、目录树
 
+
 ```text
 smart_learning/
 ├── pom.xml                                # 后端依赖与构建
@@ -54,7 +55,7 @@ smart_learning/
 │   │   ├── entity/RefreshToken.java       # refresh token 持久化
 │   │   ├── repository/RefreshTokenRepository.java
 │   │   └── service/
-│   │       ├── AuthService.java           # 三种登录、令牌轮换、自动注册
+│   │       ├── AuthService.java           # 三种登录、验证码注册、令牌轮换
 │   │       ├── VerificationCodeService.java # Redis 验证码/限流/错误次数
 │   │       ├── SmsSender.java             # 短信发送抽象
 │   │       ├── MockSmsSender.java         # 模拟短信（日志）

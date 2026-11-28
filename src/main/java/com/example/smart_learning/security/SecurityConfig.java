@@ -46,10 +46,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/login",
+                                "/api/v1/auth/captcha",
                                 "/api/v1/auth/sms/code",
                                 "/api/v1/auth/sms/login",
                                 "/api/v1/auth/email/code",
                                 "/api/v1/auth/email/login",
+                                "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/public/**",
                                 "/api/v1/seckill/activities",

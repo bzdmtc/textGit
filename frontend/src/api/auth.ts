@@ -4,16 +4,34 @@ import type { ApiResponse, MeResponse, TokenResponse } from '@/types'
 export interface LoginPayload {
   account: string
   password: string
+  captchaId?: string
+  captchaCode?: string
 }
 
 export interface SmsLoginPayload {
   phone: string
   code: string
+  captchaId?: string
+  captchaCode?: string
 }
 
 export interface EmailLoginPayload {
   email: string
   code: string
+  captchaId?: string
+  captchaCode?: string
+}
+
+export interface RegisterPayload {
+  target: string
+  code: string
+  password?: string
+  nickname?: string
+}
+
+export interface CaptchaData {
+  id: string
+  image: string
 }
 
 export interface CodeSentResponse {
@@ -22,6 +40,9 @@ export interface CodeSentResponse {
 }
 
 export const authApi = {
+  captcha() {
+    return http.get<ApiResponse<CaptchaData>>('/auth/captcha')
+  },
   login(payload: LoginPayload) {
     return http.post<ApiResponse<TokenResponse>>('/auth/login', payload)
   },
@@ -36,6 +57,9 @@ export const authApi = {
   },
   loginByEmail(payload: EmailLoginPayload) {
     return http.post<ApiResponse<TokenResponse>>('/auth/email/login', payload)
+  },
+  register(payload: RegisterPayload) {
+    return http.post<ApiResponse<TokenResponse>>('/auth/register', payload)
   },
   me() {
     return http.get<ApiResponse<MeResponse>>('/auth/me')

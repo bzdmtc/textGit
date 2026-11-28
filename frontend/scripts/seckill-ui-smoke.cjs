@@ -2,17 +2,14 @@
 const { chromium } = require('playwright-core')
 const path = require('node:path')
 const fs = require('node:fs')
+const { uiLogin } = require('./lib/auth-helper.cjs')
 
 const base = process.env.UI_BASE || 'http://localhost:5173'
 const outputDir = path.join(__dirname, '..', 'screenshots')
 fs.mkdirSync(outputDir, { recursive: true })
 
 async function login(page, account, password) {
-  await page.goto(`${base}/login`, { waitUntil: 'networkidle' })
-  await page.getByPlaceholder('请输入账号').fill(account)
-  await page.getByPlaceholder('请输入密码').fill(password)
-  await page.getByRole('button', { name: '登录', exact: true }).click()
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 })
+  await uiLogin(page, base, account, password)
 }
 
 async function main() {

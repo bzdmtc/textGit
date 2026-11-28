@@ -2,6 +2,7 @@
 const { chromium } = require('playwright-core')
 const path = require('node:path')
 const fs = require('node:fs')
+const { solveCaptchaOnPage, uiLogin } = require('./lib/auth-helper.cjs')
 
 const base = process.env.UI_BASE || 'http://localhost:5173'
 const outputDir = path.join(__dirname, '..', 'screenshots')
@@ -39,6 +40,7 @@ async function main() {
   await page.waitForURL('**/login**', { timeout: 10000 })
   check('游客领券跳转登录并保留回跳', page.url().includes('redirect='), page.url())
 
+  await solveCaptchaOnPage(page)
   await page.getByPlaceholder('请输入账号').fill('student')
   await page.getByPlaceholder('请输入密码').fill('Student@123')
   await page.getByRole('button', { name: '登录', exact: true }).first().click()
@@ -110,9 +112,7 @@ async function main() {
   await page.screenshot({ path: path.join(outputDir, '18-refund-applied.png'), fullPage: true })
 
   // 管理员审核
-  await adminPage.goto(`${base}/login`, { waitUntil: 'networkidle' })
-  await adminPage.getByRole('button', { name: '登录', exact: true }).first().click()
-  await adminPage.waitForURL('**/admin/dashboard', { timeout: 15000 })
+  await uiLogin(adminPage, base, 'admin', 'Admin@123')
   await adminPage.waitForLoadState('networkidle')
 
   await adminPage.goto(`${base}/admin/orders`, { waitUntil: 'networkidle' })

@@ -8,7 +8,8 @@
 - SQL Server 主从双数据源读写分离（`smart_learning` / `smart_learning_read`）
 - 禅道式权限分组：用户、分组、权限点、分组授权、用户分组、审计日志全部落库；分组列表按「ID/分组名称/分组描述/用户列表/操作」展示，可查看组内用户
 - 用户职位（`position`）：职位字典绑定默认权限分组；新增/编辑用户选择职位后自动带出对应分组，可手动调整，最终权限仍由分组并集决定
-- 账号密码 + 手机号验证码 + 邮箱验证码三种登录
+- 账号密码 + 手机号验证码 + 邮箱验证码三种登录；手机号/邮箱验证码注册（可设密码，注册后自动登录）
+- 登录防护：账号密码/手机号/邮箱登录均需图形验证码（注册不需要）；同一账号连续失败逐级冷却（第 3 次起 10s / 20s / 40s，最长 60s），不锁定账号；登录/发码/注册均有 IP 级限流
 - JWT access token + 数据库持久化 refresh token（轮换、吊销）
 - 权限驱动菜单、路由守卫、按钮权限指令
 - **课程与内容模块**：
@@ -251,11 +252,13 @@ sqlcmd -S localhost -C -E -b -f 65001 -d smart_learning -i scripts/reset-univers
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| POST | `/api/v1/auth/login` | 账号密码登录 |
+| GET | `/api/v1/auth/captcha` | 获取图形验证码（Base64 图片，2 分钟有效） |
+| POST | `/api/v1/auth/login` | 账号密码登录（需图形验证码） |
 | POST | `/api/v1/auth/sms/code` | 发送短信验证码（模拟） |
-| POST | `/api/v1/auth/sms/login` | 手机号验证码登录/自动注册 |
+| POST | `/api/v1/auth/sms/login` | 手机号验证码登录（需已注册 + 图形验证码） |
 | POST | `/api/v1/auth/email/code` | 发送邮箱验证码 |
-| POST | `/api/v1/auth/email/login` | 邮箱验证码登录/自动注册 |
+| POST | `/api/v1/auth/email/login` | 邮箱验证码登录（需已注册 + 图形验证码） |
+| POST | `/api/v1/auth/register` | 手机号/邮箱验证码注册，注册后自动登录 |
 | POST | `/api/v1/auth/refresh` | 刷新令牌（轮换） |
 | GET | `/api/v1/auth/me` | 当前用户 + 权限 + 菜单 |
 | GET | `/api/v1/admin/groups` | 权限分组列表 |
