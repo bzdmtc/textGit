@@ -50,13 +50,15 @@ smart_learning/
 │   │   ├── RestAccessDeniedHandler.java   # 403 JSON
 │   │   └── SecurityUtils.java             # 当前登录用户
 │   ├── auth/
-│   │   ├── controller/AuthController.java # 登录/验证码/刷新/登出/me
-│   │   ├── dto/                           # 登录、验证码、Token、MeResponse
+│   │   ├── controller/AuthController.java # 登录/注册/图形验证码/刷新/登出/me
+│   │   ├── dto/                           # 登录/注册/图形验证码 DTO、Token、MeResponse
 │   │   ├── entity/RefreshToken.java       # refresh token 持久化
 │   │   ├── repository/RefreshTokenRepository.java
 │   │   └── service/
-│   │       ├── AuthService.java           # 三种登录、验证码注册、令牌轮换
+│   │       ├── AuthService.java           # 三种登录、验证码注册、失败冷却、令牌轮换
 │   │       ├── VerificationCodeService.java # Redis 验证码/限流/错误次数
+│   │       ├── CaptchaService.java        # 图形验证码生成/一次性校验
+│   │       ├── AuthThrottleService.java   # 登录/发码/注册的 IP 级限流
 │   │       ├── SmsSender.java             # 短信发送抽象
 │   │       ├── MockSmsSender.java         # 模拟短信（日志）
 │   │       └── EmailCodeSender.java       # 邮件验证码（可配 SMTP）
@@ -91,13 +93,15 @@ smart_learning/
 ```text
 frontend/
 ├── vite.config.ts                         # /api 代理到 8080
+├── scripts/                               # Playwright UI 冒烟脚本
+│   └── lib/auth-helper.cjs                # 冒烟登录共用逻辑（自动处理图形验证码）
 ├── src/
 │   ├── main.ts                            # Vue/Pinia/Element Plus/路由/指令
 │   ├── App.vue
 │   ├── types.ts                           # 前后端 DTO 类型
 │   ├── api/
 │   │   ├── http.ts                        # Axios、Token、401 自动刷新
-│   │   ├── auth.ts                        # 登录/验证码/me
+│   │   ├── auth.ts                        # 登录/注册/图形验证码/me
 │   │   ├── permission.ts                  # 分组/权限点
 │   │   ├── user.ts                        # 用户/审计
 │   │   └── system.ts                      # 路由自检
@@ -106,7 +110,7 @@ frontend/
 │   ├── router/index.ts                    # 路由守卫
 │   ├── layouts/AdminLayout.vue            # 后台布局/动态菜单
 │   └── views/
-│       ├── LoginView.vue                  # 三种登录
+│       ├── LoginView.vue                  # 登录（图形验证码）/注册
 │       ├── ForbiddenView.vue
 │       ├── NotFoundView.vue
 │       └── admin/
@@ -124,8 +128,10 @@ frontend/
 | `common/datasource/RoutingDataSource` | 系统底座 | 按事务只读标记路由，从库故障回退主库 | `/api/v1/system/route-check/*` |
 | `system/controller/SystemController` | 系统底座 | 读写路由自检、Kafka 生产者冒烟 | `/api/v1/system/kafka-check` |
 | `security/JwtAuthenticationFilter` | 认证 | Bearer 解析、加载权限 | `Authorization` 头、`sys_user` |
-| `auth/service/AuthService` | 认证 | 密码/短信/邮箱登录、刷新轮换 | `/api/v1/auth/*`、`refresh_token` |
+| `auth/service/AuthService` | 认证 | 密码/短信/邮箱登录、验证码注册、失败逐级冷却、刷新轮换 | `/api/v1/auth/*`、`refresh_token` |
 | `auth/service/VerificationCodeService` | 认证 | Redis 验证码、限流、错误次数 | `auth:code:*`、`auth:send:*` |
+| `auth/service/CaptchaService` | 认证 | 图形验证码生成与一次性校验，登录必填、注册不需要 | `/api/v1/auth/captcha`、`auth:captcha:*` |
+| `auth/service/AuthThrottleService` | 认证 | 登录/发码/注册的 IP 级限流 | `auth:throttle:*` |
 | `permission/service/PrivilegeSyncService` | 权限 | 启动同步权限字典 | `sys_priv` |
 | `permission/service/PermissionService` | 权限 | 多分组并集、数据范围、快照缓存 | `sys_group_priv`、`sys_user_group` |
 | `permission/service/GroupService` | 权限 | 分组 CRUD、描述、组内用户列表、整组覆盖授权 | `/api/v1/admin/groups*`、`sys_group_priv` |
@@ -144,7 +150,7 @@ frontend/
 | `views/public/UniversityDetailView.vue` | 院校 | 院校详情、分数线走势图 | `/universities/:id` |
 | `views/admin/UniversityListView.vue` | 院校 | 后台院校管理与招生数据抽屉 | `/admin/universities` |
 | `views/admin/DashboardView.vue` | 看板 | 数据看板（KPI/趋势/热销/状态） | `/admin/dashboard` |
-| `views/LoginView.vue` | 认证 | 三种登录入口 | `/login` |
+| `views/LoginView.vue` | 认证 | 登录（三种方式，均需图形验证码）/ 注册入口 | `/login` |
 | `layouts/AdminLayout.vue` | 系统底座 | 后端菜单驱动的后台布局 | `/me` 返回的 `menus` |
 
 ## 三、模块 2：课程与内容代码地图
